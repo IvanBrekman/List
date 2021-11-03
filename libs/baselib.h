@@ -5,9 +5,28 @@
 #ifndef BASELIB_H
 #define BASELIB_H
 
+#ifndef VALIDATE_LEVEL
+    #define VALIDATE_LEVEL = 1
+#endif
+
 #define dbg(code) do{ printf("%s:%d\n", __FILE__, __LINE__); code }while(0)
 #define LOCATION(var) { TYPE, #var, __FILE__, __FUNCTION__, __LINE__ }
 #define VALID_PTR(ptr)  !isbadreadptr((const void*)(ptr))
+
+/*
+Default define to ASSERT_OK. Use it to customize macros for each project.
+
+#define ASSERT_OK(obj, type, reason) {                                              \
+    if (VALIDATE_LEVEL >= WEAK_VALIDATE && type ## _error(obj)) {                   \
+        type ## _dump(obj, reason);                                                 \
+        if (VALIDATE_LEVEL >= HIGHEST_VALIDATE) {                                   \
+            type ## _dump(obj, reason, "log.txt");                                  \
+        }                                                                           \
+        assert(0 && "verify failed");                                               \
+    }                                                                               \
+}
+
+*/
 
 #define FREE_PTR(ptr, type) {                   \
     free((ptr));                                \
