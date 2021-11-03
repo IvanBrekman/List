@@ -290,5 +290,5 @@ void  list_dump(List* lst, const char* reason, FILE* log, const char* sep, const
     
     fprintf(log, COLORED_OUTPUT("|---------------------Compilation  Date %s %s---------------------|", ORANGE, log),
             __DATE__, __TIME__);
-    fprintf(log, "\n");
+    fprintf(log, "\n\n");
 }

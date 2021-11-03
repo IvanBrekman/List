@@ -18,6 +18,7 @@ struct List {
         if (VALIDATE_LEVEL >= HIGHEST_VALIDATE) {                                   \
             FILE* log = open_file("log.txt", "a");                                  \
             list_dump(obj, reason, log);                                            \
+            fclose(log);                                                            \
         }                                                                           \
         assert(0 && "verify failed");                                               \
     }                                                                               \
@@ -29,6 +30,7 @@ struct List {
         if (VALIDATE_LEVEL >= HIGHEST_VALIDATE) {                                   \
             FILE* log = open_file("log.txt", "a");                                  \
             list_dump(obj, reason, log);                                            \
+            fclose(log);                                                            \
         }                                                                           \
         assert(0 && reason);                                                        \
     }                                                                               \
