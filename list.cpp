@@ -65,7 +65,7 @@ const char* list_error_desc(int error_code) {
             return "Unknown error";
     }
 }
-int list_error(List* lst) {
+int         list_error(List* lst) {
     if (!VALID_PTR(lst)) {
         return list_errors::INVALID_LIST_PTR;
     }
@@ -93,7 +93,7 @@ int find_free_cell(List* lst, int start_index) {
     return -1;
 }
 
-int push_back(List* lst, int value) {
+int   push_back(List* lst, int value) {
     ASSERT_OK(lst, "Check before push_back func");
 
     if (lst->head == lst->tail && lst->tail == 0) {
@@ -121,7 +121,7 @@ int push_back(List* lst, int value) {
     ASSERT_OK(lst, "Check after push_back func");
     return next_index;
 }
-int  pop_back(List* lst) {
+int    pop_back(List* lst) {
     ASSERT_OK(lst, "Check before pop_back func");
     
     if (lst->next[lst->head] == poisons::UNINITIALIZED_INT) {
@@ -148,7 +148,7 @@ int  pop_back(List* lst) {
     return pop_val;
 }
 
-int push_after(List* lst, int value, int ph_index) {
+int  push_after(List* lst, int value, int ph_index) {
     ASSERT_OK(lst, "Check before push_after func");
     assert(0 <= ph_index && ph_index < BUFFER_SIZE && "Incorrect ph_index");
 
@@ -175,7 +175,7 @@ int push_after(List* lst, int value, int ph_index) {
     ASSERT_OK(lst, "Check after push_after func");
     return next_index;
 }
-int  pop_after(List* lst, int ph_index) {
+int   pop_after(List* lst, int ph_index) {
     ASSERT_OK(lst, "Check before pop_after func");
     assert(0 <= ph_index && ph_index < BUFFER_SIZE && "Incorrect ph_index");
 
@@ -236,22 +236,32 @@ void  list_dump(List* lst, const char* reason, FILE* log, const char* sep, const
     assert(VALID_PTR(sep)    && "Invalid sep ptr");
     assert(VALID_PTR(end)    && "Invalid end ptr");
 
-    fprintf(log, "|-------------------------          List  Dump          -------------------------|\n");
+    fprintf(log, COLORED_OUTPUT("|-------------------------          List  Dump          -------------------------|\n", ORANGE, log));
     FPRINT_DATE(log);
-    fprintf(log, " %s\n\n", reason);
+    fprintf(log, COLORED_OUTPUT(" %s\n\n", BLUE, log), reason);
     int err = list_error(lst);
-    fprintf(log, "    List state: %d (%s)\n", err, list_error_desc(err));
+
+    fprintf(log, "    List state: %d ", err);
+    if (err != 0) fprintf(log, COLORED_OUTPUT("(%s)\n", RED,   log), list_error_desc(err));
+    else          fprintf(log, COLORED_OUTPUT("(%s)\n", GREEN, log), list_error_desc(err));
 
     fprintf(log, "    Head: %d %s\n"
                  "    Tail: %d %s\n",
-            lst->head, 0 > lst->head || lst->head >= BUFFER_SIZE ? "(BAD)" : "",
-            lst->tail, 0 > lst->tail || lst->tail >= BUFFER_SIZE ? "(BAD)" : "");
+            lst->head, 0 > lst->head || lst->head >= BUFFER_SIZE ? COLORED_OUTPUT("(BAD)", RED, log) : "",
+            lst->tail, 0 > lst->tail || lst->tail >= BUFFER_SIZE ? COLORED_OUTPUT("(BAD)", RED, log) : "");
+    
+
+    fprintf(log, "             ");
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        fprintf(log, "%3d  ", i);
+    }
+    fprintf(log, "\n");
 
     fprintf(log, "              ");
     for (int i = 0 ; i < BUFFER_SIZE; i++) {
-        if      (i == lst->head && i == lst->tail) fprintf(log, " B ");
-        else if (i == lst->head) fprintf(log, " H ");
-        else if (i == lst->tail) fprintf(log, " T ");
+        if      (i == lst->head && i == lst->tail) fprintf(log, COLORED_OUTPUT(" B ", PURPLE, log));
+        else if (i == lst->head) fprintf(log, COLORED_OUTPUT(" H ", RED, log));
+        else if (i == lst->tail) fprintf(log, COLORED_OUTPUT(" T ", GREEN, log));
         else                     fprintf(log, "   ");
 
         fprintf(log, "  ");
@@ -260,9 +270,9 @@ void  list_dump(List* lst, const char* reason, FILE* log, const char* sep, const
 
     fprintf(log, "    Buffer: [ ");
     for (int i = 0; i < BUFFER_SIZE; i++) {
-        if      (lst->buffer[i] == poisons::UNINITIALIZED_INT) fprintf(log, " un");
-        else if (lst->buffer[i] == poisons::FREED_ELEMENT)     fprintf(log, " fr");
-        else                                                 fprintf(log, "%3d", lst->buffer[i]);
+        if      (lst->buffer[i] == poisons::UNINITIALIZED_INT) fprintf(log, COLORED_OUTPUT(" un", CYAN, log));
+        else if (lst->buffer[i] == poisons::FREED_ELEMENT)     fprintf(log, COLORED_OUTPUT(" fr", RED, log));
+        else                                                   fprintf(log, "%3d", lst->buffer[i]);
 
         if (i + 1 < BUFFER_SIZE) fprintf(log, "%s", sep);
     }
@@ -270,14 +280,15 @@ void  list_dump(List* lst, const char* reason, FILE* log, const char* sep, const
 
     fprintf(log, "    Next:   [ ");
     for (int i = 0; i < BUFFER_SIZE; i++) {
-        if      (lst->next[i] == poisons::UNINITIALIZED_INT) fprintf(log, " un");
-        else if (lst->next[i] == poisons::FREED_ELEMENT)     fprintf(log, " fr");
+        if      (lst->next[i] == poisons::UNINITIALIZED_INT) fprintf(log, COLORED_OUTPUT(" un", ORANGE, log));
+        else if (lst->next[i] == poisons::FREED_ELEMENT)     fprintf(log, COLORED_OUTPUT(" fr", RED, log));
         else                                                 fprintf(log, "%3d", lst->next[i]);
 
         if (i + 1 < BUFFER_SIZE) fprintf(log, "%s", sep);
     }
     fprintf(log, " ] %s\n", end);
     
-    fprintf(log, "|---------------------Compilation  Date %s %s---------------------|\n",
+    fprintf(log, COLORED_OUTPUT("|---------------------Compilation  Date %s %s---------------------|", ORANGE, log),
             __DATE__, __TIME__);
+    fprintf(log, "\n");
 }

@@ -11,7 +11,10 @@
 
 #define dbg(code) do{ printf("%s:%d\n", __FILE__, __LINE__); code }while(0)
 #define LOCATION(var) { TYPE, #var, __FILE__, __FUNCTION__, __LINE__ }
-#define VALID_PTR(ptr)  !isbadreadptr((const void*)(ptr))
+#define VALID_PTR(ptr) !isbadreadptr((const void*)(ptr))
+
+#define COLORED_OUTPUT(str, color, file) IS_TERMINAL(file) ? (color str NATURAL) : str
+#define IS_TERMINAL(file) (file == stdin) || (file == stdout) || (file == stderr)
 
 /*
 Default define to ASSERT_OK. Use it to customize macros for each project.

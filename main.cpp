@@ -61,11 +61,12 @@ int main(int argc, char** argv) {
     list_dump(&lst, "Check deleting");
     print_list(&lst);
 
-    pop_after(&lst, 1);
-    list_dump(&lst, "Check deleting");
-    print_list(&lst);
+    // pop_after(&lst, 1);
+    // list_dump(&lst, "Check deleting");
+    // print_list(&lst);
 #endif
 
+    list_dtor(&lst);
     list_dtor(&lst);
 
     return 0;
