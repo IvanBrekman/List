@@ -15,30 +15,36 @@
 
 int list_ctor(List* lst) {
     assert(VALID_PTR(lst) && "Invalid lst ptr");
-
-    if (VALIDATE_LEVEL >= MEDIUM_VALIDATE) {
-        for (int i = 0; i < BUFFER_SIZE; i++) {
-            lst->buffer[i] = poisons::UNINITIALIZED_INT;
-            lst->next[i]   = poisons::UNINITIALIZED_INT;
-        }
-    }
     
     lst->head = lst->tail = 0;
+    lst->capacity = BUFFER_DEFAULT_SIZE;
+
+    lst->buffer = (int*) calloc(lst->capacity, sizeof(int));
+    lst->next   = (int*) calloc(lst->capacity, sizeof(int));
+
+    for (int i = 0; i < lst->capacity; i++) {
+        lst->buffer[i] = poisons::UNINITIALIZED_INT;
+        lst->next[i]   = poisons::UNINITIALIZED_INT;
+    }
 
     ASSERT_OK(lst, "Check corectness of list_ctor");
     return 0;
 }
+
 int list_dtor(List* lst) {
     ASSERT_OK(lst, "Check List before dtor call");
 
     if (VALIDATE_LEVEL >= MEDIUM_VALIDATE) {
-        for (int i = 0; i < BUFFER_SIZE; i++) {
+        for (int i = 0; i < lst->capacity; i++) {
             lst->buffer[i] = poisons::FREED_ELEMENT;
             lst->next[i]   = poisons::FREED_ELEMENT;
         }
     }
 
-    lst->head = lst->tail = -1;
+    lst->capacity = lst->head = lst->tail = -1;
+
+    FREE_PTR(lst->buffer, int);
+    FREE_PTR(lst->next, int);
 
     return 0;
 }
@@ -54,26 +60,32 @@ const char* list_error_desc(int error_code) {
             return "Incorrect head index: index (< 0) or (>= BUFFER_SIZE)";
         case errors::INCORRECT_TAIL_INDEX:
             return "Incorrect tail index: index (< 0) or (>= BUFFER_SIZE)";
+        case errors::INCORRECT_CAPACITY:
+            return "Incorrect capacity: capacity (<= 0)";
         case errors::LST_EMPTY:
             return "List is empty";
-        case errors::LST_FULL:
-            return "List is full";
         case errors::BAD_PH_INDEX:
             return "Funvtion received bad physical index (next index in lst->next[ph_index] is UNINITIALIZED";
+        case errors::NOT_ENOUGH_MEMORY:
+            return "Not enough memory to increase capacity";
         
         default:
             return "Unknown error";
     }
 }
-int         list_error(List* lst) {
+
+int list_error(List* lst) {
     if (!VALID_PTR(lst)) {
         return errors::INVALID_LIST_PTR;
     }
 
-    if (0 > lst->head || lst->head >= BUFFER_SIZE) {
+    if (lst->capacity <= 0) {
+        return errors::INCORRECT_CAPACITY;
+    }
+    if (0 > lst->head || lst->head >= lst->capacity) {
         return errors::INCORRECT_HEAD_INDEX;
     }
-    if (0 > lst->tail || lst->tail >= BUFFER_SIZE) {
+    if (0 > lst->tail || lst->tail >= lst->capacity) {
         return errors::INCORRECT_TAIL_INDEX;
     }
 
@@ -82,15 +94,43 @@ int         list_error(List* lst) {
 
 int find_free_cell(List* lst, int start_index) {
     ASSERT_OK(lst, "Check before find_free_cell func");
-    assert(0 <= start_index && start_index < BUFFER_SIZE && "Incorrect start_index");
+    assert(0 <= start_index && start_index < lst->capacity && "Incorrect start_index");
 
-    for (int i = (start_index + 1) % BUFFER_SIZE, count = 0; count < BUFFER_SIZE; i++ % BUFFER_SIZE, count++) {
+    for (int i = (start_index + 1) % lst->capacity, count = 0; count < lst->capacity; i++ % lst->capacity, count++) {
         if (lst->next[i] == poisons::UNINITIALIZED_INT && i != 0) {
             return i;
         }
     }
 
     return -1;
+}
+
+int resize_list_capacity(List* lst, int new_size) {
+    ASSERT_OK(lst, "Check before resize_list_capacity func");
+    assert(new_size > 0 && "Incorrect new_size (<= 0)");
+
+    int* new_buf  = (int*) realloc(lst->buffer, new_size * sizeof(int));
+    int* new_next = (int*) realloc(lst->next,   new_size * sizeof(int));
+
+    if (!VALID_PTR(new_buf) || !VALID_PTR(new_next)) {
+        ERROR_DUMP(lst, "Not enough memory");
+
+        errno = errors::NOT_ENOUGH_MEMORY;
+        return errors::NOT_ENOUGH_MEMORY;
+    }
+
+    lst->buffer   = new_buf;
+    lst->next     = new_next;
+
+    for (int i = lst->capacity; i < new_size; i++) {
+        lst->buffer[i] = poisons::UNINITIALIZED_INT;
+        lst->next[i]   = poisons::UNINITIALIZED_INT;
+    }
+
+    lst->capacity = new_size;
+
+    ASSERT_OK(lst, "Check after resize_list_capacity func");
+    return lst->capacity;
 }
 
 int   push_back(List* lst, int value) {
@@ -108,9 +148,14 @@ int   push_back(List* lst, int value) {
     int next_index = find_free_cell(lst, lst->tail);
 
     if (next_index == -1) {
-        ERROR_DUMP(lst, "Cannot push to full list");
-        return errors::LST_FULL;
+        lst->capacity = resize_list_capacity(lst, lst->capacity * 2);
+
+        next_index = find_free_cell(lst, lst->tail);
+
+        PRINT_WARNING("!WARNING! List is to small. List capacity has increased, but it`s to slow.\n"
+                      "          Recreate List with bigger capacity to speed up list working.\n");
     }
+    assert(0 <= next_index && next_index < lst->capacity && "Incorrect next index");
 
     lst->buffer[next_index] = value;
     lst->next[next_index]   = 0;
@@ -121,11 +166,14 @@ int   push_back(List* lst, int value) {
     ASSERT_OK(lst, "Check after push_back func");
     return next_index;
 }
+
 int    pop_back(List* lst) {
     ASSERT_OK(lst, "Check before pop_back func");
     
     if (lst->next[lst->head] == poisons::UNINITIALIZED_INT) {
         ERROR_DUMP(lst, "Cannot pop from empty lst");
+
+        errno = errors::LST_EMPTY;
         return errors::LST_EMPTY;
     }
     int pop_val = lst->buffer[lst->head];
@@ -150,7 +198,7 @@ int    pop_back(List* lst) {
 
 int  push_after(List* lst, int value, int ph_index) {
     ASSERT_OK(lst, "Check before push_after func");
-    assert(0 <= ph_index && ph_index < BUFFER_SIZE && "Incorrect ph_index");
+    assert(0 <= ph_index && ph_index < lst->capacity && "Incorrect ph_index");
 
     if (lst->tail == ph_index) {
         return push_back(lst, value);
@@ -158,15 +206,22 @@ int  push_after(List* lst, int value, int ph_index) {
 
     if (lst->next[ph_index] == poisons::UNINITIALIZED_INT) {
         ERROR_DUMP(lst, "Push after invalid element. Incorrect physical index");
+
+        errno = errors::BAD_PH_INDEX;
         return errors::BAD_PH_INDEX;
     }
 
     int next_index = find_free_cell(lst, ph_index);
 
     if (next_index == -1) {
-        ERROR_DUMP(lst, "Cannot push to full list");
-        return errors::LST_FULL;
+        lst->capacity = resize_list_capacity(lst, lst->capacity * 2);
+
+        next_index = find_free_cell(lst, ph_index);
+
+        PRINT_WARNING("!WARNING! List is to small. List capacity has increased, but it`s to slow.\n"
+                      "          Recreate List with bigger capacity to speed up list working.\n");
     }
+    assert(0 <= next_index && next_index < lst->capacity && "Incorrect next index");
 
     lst->buffer[next_index] = value;
     lst->next[next_index] = lst->next[ph_index];
@@ -175,20 +230,27 @@ int  push_after(List* lst, int value, int ph_index) {
     ASSERT_OK(lst, "Check after push_after func");
     return next_index;
 }
+
 int   pop_after(List* lst, int ph_index) {
     ASSERT_OK(lst, "Check before pop_after func");
-    assert(0 <= ph_index && ph_index < BUFFER_SIZE && "Incorrect ph_index");
+    assert(0 <= ph_index && ph_index < lst->capacity && "Incorrect ph_index");
 
     if (lst->next[lst->head] == poisons::UNINITIALIZED_INT) {
         ERROR_DUMP(lst, "Cannot pop from empty lst");
+
+        errno = errors::LST_EMPTY;
         return errors::LST_EMPTY;
     }
     if (lst->next[ph_index] == poisons::UNINITIALIZED_INT) {
         ERROR_DUMP(lst, "Pop after invalid element. Incorrect physical index");
+
+        errno = errors::BAD_PH_INDEX;
         return errors::BAD_PH_INDEX;
     }
     if (lst->tail == ph_index) {
-        ERROR_DUMP(lst, "Pop next after last element. Incorrect physical index")
+        ERROR_DUMP(lst, "Pop next after last element. Incorrect physical index");
+
+        errno = errors::BAD_PH_INDEX;
         return errors::BAD_PH_INDEX;
     }
 
@@ -205,7 +267,6 @@ int   pop_after(List* lst, int ph_index) {
     ASSERT_OK(lst, "Check after pop_after func");
     return pop_val;
 }
-
 
 void print_list(List* lst, const char* sep, const char* end) {
     ASSERT_OK(lst, "Check before print_list func");
@@ -228,6 +289,7 @@ void print_list(List* lst, const char* sep, const char* end) {
     }
     printf(" ]%s", end);
 }
+
 void  list_dump(List* lst, const char* reason, FILE* log, const char* sep, const char* end) {
     assert(VALID_PTR(lst)    && "Invalid lst ptr");
     assert(VALID_PTR(log)    && "Invalid log ptr");
@@ -245,20 +307,22 @@ void  list_dump(List* lst, const char* reason, FILE* log, const char* sep, const
     if (err != 0) fprintf(log, COLORED_OUTPUT("(%s)\n", RED,   log), list_error_desc(err));
     else          fprintf(log, COLORED_OUTPUT("(%s)\n", GREEN, log), list_error_desc(err));
 
-    fprintf(log, "    Head: %d %s\n"
-                 "    Tail: %d %s\n",
-            lst->head, 0 > lst->head || lst->head >= BUFFER_SIZE ? COLORED_OUTPUT("(BAD)", RED, log) : "",
-            lst->tail, 0 > lst->tail || lst->tail >= BUFFER_SIZE ? COLORED_OUTPUT("(BAD)", RED, log) : "");
+    fprintf(log, "        Head: %d %s\n"
+                 "        Tail: %d %s\n"
+                 "    Capacity: %d %s\n",
+            lst->head, 0 > lst->head || lst->head >= lst->capacity ? COLORED_OUTPUT("(BAD)", RED, log) : "",
+            lst->tail, 0 > lst->tail || lst->tail >= lst->capacity ? COLORED_OUTPUT("(BAD)", RED, log) : "",
+            lst->capacity,          (lst->capacity <= 0)      ?      COLORED_OUTPUT("(BAD)", RED, log) : "");
     
 
     fprintf(log, "             ");
-    for (int i = 0; i < BUFFER_SIZE; i++) {
+    for (int i = 0; i < lst->capacity; i++) {
         fprintf(log, "%3d  ", i);
     }
     fprintf(log, "\n");
 
     fprintf(log, "              ");
-    for (int i = 0 ; i < BUFFER_SIZE; i++) {
+    for (int i = 0 ; i < lst->capacity; i++) {
         if      (i == lst->head && i == lst->tail) fprintf(log, COLORED_OUTPUT(" B ", PURPLE, log));
         else if (i == lst->head) fprintf(log, COLORED_OUTPUT(" H ", RED, log));
         else if (i == lst->tail) fprintf(log, COLORED_OUTPUT(" T ", GREEN, log));
@@ -269,22 +333,22 @@ void  list_dump(List* lst, const char* reason, FILE* log, const char* sep, const
     fprintf(log, "\n");
 
     fprintf(log, "    Buffer: [ ");
-    for (int i = 0; i < BUFFER_SIZE; i++) {
+    for (int i = 0; i < lst->capacity; i++) {
         if      (lst->buffer[i] == poisons::UNINITIALIZED_INT) fprintf(log, COLORED_OUTPUT(" un", CYAN, log));
         else if (lst->buffer[i] == poisons::FREED_ELEMENT)     fprintf(log, COLORED_OUTPUT(" fr", RED, log));
         else                                                   fprintf(log, "%3d", lst->buffer[i]);
 
-        if (i + 1 < BUFFER_SIZE) fprintf(log, "%s", sep);
+        if (i + 1 < lst->capacity) fprintf(log, "%s", sep);
     }
     fprintf(log, " ]%s", end);
 
     fprintf(log, "    Next:   [ ");
-    for (int i = 0; i < BUFFER_SIZE; i++) {
+    for (int i = 0; i < lst->capacity; i++) {
         if      (lst->next[i] == poisons::UNINITIALIZED_INT) fprintf(log, COLORED_OUTPUT(" un", ORANGE, log));
         else if (lst->next[i] == poisons::FREED_ELEMENT)     fprintf(log, COLORED_OUTPUT(" fr", RED, log));
         else                                                 fprintf(log, "%3d", lst->next[i]);
 
-        if (i + 1 < BUFFER_SIZE) fprintf(log, "%s", sep);
+        if (i + 1 < lst->capacity) fprintf(log, "%s", sep);
     }
     fprintf(log, " ] %s\n", end);
     

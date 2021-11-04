@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
     list_ctor(&lst);
     list_dump(&lst, "Check dump");
 
-#if 0
+#if 1
     print_list(&lst);
     for (int i = 0; i < 5; i++) {
         push_back(&lst, (i + 1) * 10);
@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     list_dump(&lst, "Check deleting");
     print_list(&lst);
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 10; i++) {
         push_back(&lst, (i + 1) * 10);
         list_dump(&lst, "Check adding");
         print_list(&lst);
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
     }
 #endif
 
-#if 1
+#if 0
     int ph_index = push_back(&lst, 10);
     
     for (int i = 0; i < 5; i++) {
@@ -66,7 +66,6 @@ int main(int argc, char** argv) {
     // print_list(&lst);
 #endif
 
-    list_dtor(&lst);
     list_dtor(&lst);
 
     return 0;
