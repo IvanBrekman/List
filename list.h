@@ -36,10 +36,10 @@ struct List {
     }                                                                               \
 }
 
-enum list_errors {
-    OK = 0,
+enum errors {
+    OK                   =  0,
 
-    INVALID_LIST_PTR = -1,
+    INVALID_LIST_PTR     = -1,
 
     INCORRECT_HEAD_INDEX = -2,
     INCORRECT_TAIL_INDEX = -3,

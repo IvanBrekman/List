@@ -23,7 +23,7 @@ int list_ctor(List* lst) {
         }
     }
     
-    lst->head      = lst->tail    = 0;
+    lst->head = lst->tail = 0;
 
     ASSERT_OK(lst, "Check corectness of list_ctor");
     return 0;
@@ -46,19 +46,19 @@ int list_dtor(List* lst) {
 const char* list_error_desc(int error_code) {
     switch (error_code)
     {
-        case list_errors::OK:
+        case errors::OK:
             return "ok";
-        case list_errors::INVALID_LIST_PTR:
+        case errors::INVALID_LIST_PTR:
             return "Invalid list pointer";
-        case list_errors::INCORRECT_HEAD_INDEX:
+        case errors::INCORRECT_HEAD_INDEX:
             return "Incorrect head index: index (< 0) or (>= BUFFER_SIZE)";
-        case list_errors::INCORRECT_TAIL_INDEX:
+        case errors::INCORRECT_TAIL_INDEX:
             return "Incorrect tail index: index (< 0) or (>= BUFFER_SIZE)";
-        case list_errors::LST_EMPTY:
+        case errors::LST_EMPTY:
             return "List is empty";
-        case list_errors::LST_FULL:
+        case errors::LST_FULL:
             return "List is full";
-        case list_errors::BAD_PH_INDEX:
+        case errors::BAD_PH_INDEX:
             return "Funvtion received bad physical index (next index in lst->next[ph_index] is UNINITIALIZED";
         
         default:
@@ -67,17 +67,17 @@ const char* list_error_desc(int error_code) {
 }
 int         list_error(List* lst) {
     if (!VALID_PTR(lst)) {
-        return list_errors::INVALID_LIST_PTR;
+        return errors::INVALID_LIST_PTR;
     }
 
     if (0 > lst->head || lst->head >= BUFFER_SIZE) {
-        return list_errors::INCORRECT_HEAD_INDEX;
+        return errors::INCORRECT_HEAD_INDEX;
     }
     if (0 > lst->tail || lst->tail >= BUFFER_SIZE) {
-        return list_errors::INCORRECT_TAIL_INDEX;
+        return errors::INCORRECT_TAIL_INDEX;
     }
 
-    return list_errors::OK;
+    return errors::OK;
 }
 
 int find_free_cell(List* lst, int start_index) {
@@ -109,7 +109,7 @@ int   push_back(List* lst, int value) {
 
     if (next_index == -1) {
         ERROR_DUMP(lst, "Cannot push to full list");
-        return list_errors::LST_FULL;
+        return errors::LST_FULL;
     }
 
     lst->buffer[next_index] = value;
@@ -126,7 +126,7 @@ int    pop_back(List* lst) {
     
     if (lst->next[lst->head] == poisons::UNINITIALIZED_INT) {
         ERROR_DUMP(lst, "Cannot pop from empty lst");
-        return list_errors::LST_EMPTY;
+        return errors::LST_EMPTY;
     }
     int pop_val = lst->buffer[lst->head];
 
@@ -158,14 +158,14 @@ int  push_after(List* lst, int value, int ph_index) {
 
     if (lst->next[ph_index] == poisons::UNINITIALIZED_INT) {
         ERROR_DUMP(lst, "Push after invalid element. Incorrect physical index");
-        return list_errors::BAD_PH_INDEX;
+        return errors::BAD_PH_INDEX;
     }
 
     int next_index = find_free_cell(lst, ph_index);
 
     if (next_index == -1) {
         ERROR_DUMP(lst, "Cannot push to full list");
-        return list_errors::LST_FULL;
+        return errors::LST_FULL;
     }
 
     lst->buffer[next_index] = value;
@@ -181,15 +181,15 @@ int   pop_after(List* lst, int ph_index) {
 
     if (lst->next[lst->head] == poisons::UNINITIALIZED_INT) {
         ERROR_DUMP(lst, "Cannot pop from empty lst");
-        return list_errors::LST_EMPTY;
+        return errors::LST_EMPTY;
     }
     if (lst->next[ph_index] == poisons::UNINITIALIZED_INT) {
         ERROR_DUMP(lst, "Pop after invalid element. Incorrect physical index");
-        return list_errors::BAD_PH_INDEX;
+        return errors::BAD_PH_INDEX;
     }
     if (lst->tail == ph_index) {
         ERROR_DUMP(lst, "Pop next after last element. Incorrect physical index")
-        return list_errors::BAD_PH_INDEX;
+        return errors::BAD_PH_INDEX;
     }
 
     int next_index = lst->next[ph_index];
