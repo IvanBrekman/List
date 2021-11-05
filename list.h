@@ -4,9 +4,15 @@
 
 const int BUFFER_DEFAULT_SIZE = 10;
 
+typedef int List_t;
+
+struct ListElement {
+    int value;
+    int next;
+};
+
 struct List {
-    int* buffer = NULL;
-    int*   next = NULL;
+    ListElement* data = NULL;
 
     int head = -1;
     int tail = -1;
@@ -37,15 +43,6 @@ struct List {
             fclose(log);                                                            \
         }                                                                           \
         assert(0 && reason);                                                        \
-    }                                                                               \
-}
-
-#define PRINT_WARNING(text) {                                                       \
-    printf(ORANGE text NATURAL);                                                    \
-    if (VALIDATE_LEVEL >= HIGHEST_VALIDATE) {                                       \
-        FILE* log = open_file("log.txt", "a");                                      \
-        fprintf(log, text);                                                         \
-        fclose(log);                                                                \
     }                                                                               \
 }
 

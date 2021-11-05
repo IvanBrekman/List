@@ -6,7 +6,7 @@
 #define BASELIB_H
 
 #ifndef VALIDATE_LEVEL
-    #define VALIDATE_LEVEL = 1
+    #define VALIDATE_LEVEL 1
 #endif
 
 #define dbg(code) do{ printf("%s:%d\n", __FILE__, __LINE__); code }while(0)
@@ -30,6 +30,25 @@ Default define to ASSERT_OK. Use it to customize macros for each project.
 }
 
 */
+
+#define PRINT_WARNING(text) {                                                       \
+    printf(ORANGE text NATURAL);                                                    \
+    if (VALIDATE_LEVEL >= HIGHEST_VALIDATE) {                                       \
+        FILE* log = open_file("log.txt", "a");                                      \
+        fprintf(log, text);                                                         \
+        fclose(log);                                                                \
+    }                                                                               \
+}
+
+static FILE* open_file(...) { return NULL; }
+#define ASSERT_IF(cond, text, ret) {                                                \
+    assert((cond) && text);                                                         \
+    if (!(cond)) {                                                                  \
+        PRINT_WARNING(text);                                                        \
+        errno = -1;                                                                 \
+        return ret;                                                                 \
+    }                                                                               \
+}
 
 #define FREE_PTR(ptr, type) {                   \
     free((ptr));                                \

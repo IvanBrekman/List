@@ -8,6 +8,7 @@
 #include <cerrno>
 #include <fcntl.h>
 #include <unistd.h>
+#include <cstdio>
 
 #include "baselib.h"
 
@@ -126,7 +127,7 @@ const char* to_string(int number) {
 //! \return (< 0) if (num1 < num2), 0 if (num1 == num2), (>0) if (num1 > num2)
 int cmp_int(const void* num1, const void* num2) {
     assert(VALID_PTR(num1) && "Invalid num1 ptr");
-    assert(VALID_PTR(num2) && "Invalid num2 ptr");
+    ASSERT_IF(VALID_PTR(num2), "Invalid num2 ptr", -1);
     
     return *(const int*)num1 - *(const int*)num2;
 }
