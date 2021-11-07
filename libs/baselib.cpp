@@ -109,14 +109,21 @@ const char* to_string(int number) {
         return "0";
     }
 
+    int shift = 0;
+    if (number < 0) {
+        shift = 1;
+        number = -number;
+    }
+
     int d_num = digits_number(number, 10);
-    char* str_num = (char*) calloc(d_num + 1, sizeof(char));
+    char* str_num = (char*) calloc(d_num + shift + 1, sizeof(char));
 
     for (int i = d_num - 1; number > 0; i--) {
-        str_num[i] = (char)('0' + (number % 10));
+        str_num[i + shift] = (char)('0' + (number % 10));
         number /= 10;
     }
-    str_num[d_num] = '\0';
+    if (shift) str_num[0] = '-';
+    str_num[d_num + shift] = '\0';
 
     return (const char*) str_num;
 }

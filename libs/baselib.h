@@ -9,6 +9,10 @@
     #define VALIDATE_LEVEL 1
 #endif
 
+#ifndef LOG_PRINTF
+    #define LOG_PRINTF 0
+#endif
+
 #define dbg(code) do{ printf("%s:%d\n", __FILE__, __LINE__); code }while(0)
 #define LOCATION(var) { TYPE, #var, __FILE__, __FUNCTION__, __LINE__ }
 #define VALID_PTR(ptr) !isbadreadptr((const void*)(ptr))
@@ -18,14 +22,21 @@
 
 /*
 Default define to ASSERT_OK. Use it to customize macros for each project.
+!Note!  To use this macro check that open_file function is defined
+        or use another function to open file.
 
-#define ASSERT_OK(obj, type, reason) {                                              \
+#define ASSERT_OK(obj, type, reason, ret) {                                         \
     if (VALIDATE_LEVEL >= WEAK_VALIDATE && type ## _error(obj)) {                   \
         type ## _dump(obj, reason);                                                 \
         if (VALIDATE_LEVEL >= HIGHEST_VALIDATE) {                                   \
+            FILE* log = open_file("log.txt", "a");                                  \
             type ## _dump(obj, reason, "log.txt");                                  \
+            fclose(log);                                                            \
         }                                                                           \
-        assert(0 && "verify failed");                                               \
+        ASSERT_IF(0, "verify failed", ret);                                         \
+    } else if (type ## _error(obj)) {                                               \
+        errno = type ## _error(obj);                                                \
+        return ret;                                                                 \
     }                                                                               \
 }
 
@@ -44,7 +55,7 @@ static FILE* open_file(...) { return NULL; }
 #define ASSERT_IF(cond, text, ret) {                                                \
     assert((cond) && text);                                                         \
     if (!(cond)) {                                                                  \
-        PRINT_WARNING(text);                                                        \
+        PRINT_WARNING(text "\n");                                                   \
         errno = -1;                                                                 \
         return ret;                                                                 \
     }                                                                               \
@@ -73,7 +84,7 @@ static FILE* open_file(...) { return NULL; }
 #define BLUE        "\033[1;34m"
 #define PURPLE      "\033[1;35m"
 #define CYAN        "\033[1;36m"
-#define WHITE       "\033[1;37m"
+#define GRAY        "\033[1;37m"
 
 #define BLACK_UNL   "\033[4;30m"
 #define RED_UNL     "\033[4;31m"
@@ -82,7 +93,7 @@ static FILE* open_file(...) { return NULL; }
 #define BLUE_UNL    "\033[4;34m"
 #define PURPLE_UNL  "\033[4;35m"
 #define CYAN_UNL    "\033[4;36m"
-#define WHITE_UNL   "\033[4;37m"
+#define GRAY_UNL    "\033[4;37m"
 
 #define NATURAL     "\033[0m"
 // ----------------------------------------------------------------------------
