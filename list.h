@@ -6,7 +6,7 @@
 #define LIST_LISTH
 
 const int BUFFER_DEFAULT_SIZE = 10;
-const int MAX_NODE_STR_SIZE = 200;
+const int MAX_NODE_STR_SIZE = 300;
 
 typedef int List_t;
 
@@ -36,14 +36,22 @@ struct List {
             list_dump(obj, reason, log);                                            \
             fclose(log);                                                            \
         }                                                                           \
+        FILE* gr_log = open_file("log.html", "w");                                  \
+        if (LOG_GRAPH == 1) list_dump_graph(obj, reason, gr_log);                   \
+        fclose(gr_log);                                                             \
+                                                                                    \
         ASSERT_IF(0, "verify failed", ret);                                         \
     } else if (list_error(obj)) {                                                   \
+        FILE* gr_log = open_file("log.html", "w");                                  \
+        if (LOG_GRAPH == 1) list_dump_graph(obj, reason, gr_log);                   \
+        fclose(gr_log);                                                             \
+                                                                                    \
         errno = list_error(obj);                                                    \
         return ret;                                                                 \
     }                                                                               \
 }
 
-#define ERROR_DUMP(obj, reason) {                                                   \
+#define ERROR_DUMP(obj, reason, ret) {                                              \
     if (VALIDATE_LEVEL >= WEAK_VALIDATE) {                                          \
         list_dump(obj, reason);                                                     \
         if (VALIDATE_LEVEL >= HIGHEST_VALIDATE) {                                   \
@@ -51,7 +59,11 @@ struct List {
             list_dump(obj, reason, log);                                            \
             fclose(log);                                                            \
         }                                                                           \
-        assert(0 && reason);                                                        \
+        FILE* gr_log = open_file("log.html", "w");                                  \
+        if (LOG_GRAPH == 1) list_dump_graph(obj, reason, gr_log);                   \
+        fclose(gr_log);                                                             \
+                                                                                    \
+        ASSERT_IF(0, reason, ret);                                                  \
     }                                                                               \
 }
 
@@ -95,8 +107,8 @@ List_t  pop_back(List* lst);
 int   push_front(List* lst, List_t value);
 List_t pop_front(List* lst);
 
-int   print_list(List* lst, const char* sep=", ", const char* end="\n");
-int    list_dump(List* lst, const char* reason, FILE* log=stdout, const char* sep=", ", const char* end="\n");
-int list_dump_graph(List* lst, FILE* log);
+int      print_list(List* lst, const char* sep=", ", const char* end="\n");
+int       list_dump(List* lst, const char* reason, FILE* log=stdout, const char* sep=", ", const char* end="\n");
+int list_dump_graph(List* lst, const char* reason, FILE* log,        const char* sep=", ", const char* end="\n");
 
 #endif // LIST_LISTH

@@ -45,13 +45,12 @@ Default define to ASSERT_OK. Use it to customize macros for each project.
 #define PRINT_WARNING(text) {                                                       \
     printf(ORANGE text NATURAL);                                                    \
     if (VALIDATE_LEVEL >= HIGHEST_VALIDATE) {                                       \
-        FILE* log = open_file("log.txt", "a");                                      \
-        fprintf(log, text);                                                         \
-        fclose(log);                                                                \
+        FILE* wlog = open_file("log.txt", "a");                                     \
+        fprintf(wlog, text);                                                        \
+        fclose(wlog);                                                               \
     }                                                                               \
 }
 
-static FILE* open_file(...) { return NULL; }
 #define ASSERT_IF(cond, text, ret) {                                                \
     assert((cond) && text);                                                         \
     if (!(cond)) {                                                                  \

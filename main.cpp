@@ -6,10 +6,11 @@
 #include <cerrno>
 
 #include "libs/baselib.h"
+#include "libs/file_funcs.h"
 
 #include "list.h"
 
-int main(int argc, char** argv) {
+int main(void) {
     List lst = { };
 
     errno = 0;
@@ -52,24 +53,27 @@ int main(int argc, char** argv) {
         print_list(&lst);
     }
 
-    // please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_really_need_it__i_think_no__so_dont_do_stupid_things_and_better_look_at_memes_about_cats(&lst);
-    // list_dump(&lst, "Check sorting");
-    // print_list(&lst);
+    please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_really_need_it__i_think_no__so_dont_do_stupid_things_and_better_look_at_memes_about_cats(&lst);
+    list_dump(&lst, "Check sorting");
+    print_list(&lst);
 
     pop_front(&lst);
     list_dump(&lst, "Check deleting front");
     print_list(&lst);
 
     printf("Number: %d\n", get(&lst, 2));
-    push_index(&lst, -13, 9);
+    push_index(&lst, -13, 2);
     list_dump(&lst, "Check adding");
     print_list(&lst);
 
-    // please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_really_need_it__i_think_no__so_dont_do_stupid_things_and_better_look_at_memes_about_cats(&lst);
-    // list_dump(&lst, "Check sorting");
-    // print_list(&lst);
+    please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_really_need_it__i_think_no__so_dont_do_stupid_things_and_better_look_at_memes_about_cats(&lst);
+    list_dump(&lst, "Check sorting");
+    print_list(&lst);
 
-    list_dump_graph(&lst, stdout);
+    FILE* graph_log = open_file("log.html", "w");
+    list_dump_graph(&lst, "Check dtor", graph_log);
+    fclose(graph_log);
+
 #endif
 
 #if 0
@@ -99,6 +103,7 @@ int main(int argc, char** argv) {
 #endif
 
     list_dtor(&lst);
+    list_dump(&lst, "check dtor");
 
     return 0;
 }

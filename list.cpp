@@ -29,10 +29,10 @@ int list_ctor(List* lst, int capacity) {
 
     for (int i = 0; i < capacity; i++) {
         // TODO function or directly assign?
-        // fill_list_element(&lst->data[i], (List_t)poisons::UNINITIALIZED_INT, i + 1, poisons::UNINITIALIZED_INT);
-        lst->data[i].value = (List_t)poisons::UNINITIALIZED_INT;
+        // fill_list_element(&lst->data[i], (List_t)UN, i + 1, UN);
+        lst->data[i].value = (List_t)UN;
         lst->data[i].next  = i + 1;
-        lst->data[i].prev  = poisons::UNINITIALIZED_INT;
+        lst->data[i].prev  = UN;
     }
     lst->data[0].next = 0;
     lst->data[0].prev = 0;
@@ -53,9 +53,9 @@ int list_dtor(List* lst) {
     if (VALIDATE_LEVEL >= MEDIUM_VALIDATE) {
         int capacity = lst->capacity;
         for (int i = 0; i < capacity; i++) {
-            lst->data[i].value = (List_t)poisons::FREED_ELEMENT;
-            lst->data[i].next  = poisons::FREED_ELEMENT;
-            lst->data[i].prev  = poisons::FREED_ELEMENT;
+            lst->data[i].value = (List_t)FR;
+            lst->data[i].next  = FR;
+            lst->data[i].prev  = FR;
         }
     }
 
@@ -148,7 +148,7 @@ int resize_list_capacity(List* lst, int new_size) {
     ListElement* new_data = (ListElement*) realloc(lst->data, new_size * sizeof(ListElement));
 
     if (!VALID_PTR(new_data)) {
-        ERROR_DUMP(lst, "Not enough memory");
+        ERROR_DUMP(lst, "Not enough memory", (List_t)UN);
 
         errno = errors::NOT_ENOUGH_MEMORY;
         return errors::NOT_ENOUGH_MEMORY;
@@ -158,13 +158,14 @@ int resize_list_capacity(List* lst, int new_size) {
 
     int capacity = lst->capacity;
     for (int i = capacity; i < new_size; i++) {
-        lst->data[i].value = (List_t)poisons::UNINITIALIZED_INT;
+        lst->data[i].value = (List_t)UN;
         lst->data[i].next  = i + 1;
-        lst->data[i].prev  = poisons::UNINITIALIZED_INT;
+        lst->data[i].prev  = UN;
     }
 
     lst->first_free = capacity;
     lst->capacity = new_size;
+    lst->data[new_size - 1].next = 0;
 
     ASSERT_OK(lst, "Check after resize_list_capacity func", 0);
     return lst->capacity;
@@ -177,13 +178,13 @@ int please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_
     ListElement* sorted_list = (ListElement*) calloc(capacity, sizeof(ListElement));
 
     if (!VALID_PTR(sorted_list)) {
-        ERROR_DUMP(lst, "Not enough memory");
+        ERROR_DUMP(lst, "Not enough memory", (List_t)UN);
 
         errno = errors::NOT_ENOUGH_MEMORY;
         return errors::NOT_ENOUGH_MEMORY;
     }
 
-    sorted_list[0].value = poisons::UNINITIALIZED_INT;
+    sorted_list[0].value = UN;
     sorted_list[0].next  = 1;
     sorted_list[0].prev  = 1;
 
@@ -195,9 +196,9 @@ int please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_
 
         if (lst->data[head_tmp].next == 0) {
             for (int index_zero = i + 1; index_zero < capacity; index_zero++) {
-                sorted_list[index_zero].value = poisons::UNINITIALIZED_INT;
+                sorted_list[index_zero].value = UN;
                 sorted_list[index_zero].next  = index_zero + 1;
-                sorted_list[index_zero].prev  = poisons::UNINITIALIZED_INT;
+                sorted_list[index_zero].prev  = UN;
             }
 
             sorted_list[i].next = 0;
@@ -218,15 +219,15 @@ int please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_
 }
 
 List_t get(List* lst, int log_index) {
-    ASSERT_OK(lst, "Check before get func", (List_t)poisons::UNINITIALIZED_INT);
-    ASSERT_IF(0 <= log_index && log_index < lst->capacity - 1, "Incorrect logical index. Should be (> 0) and (< capacity)", (List_t)poisons::UNINITIALIZED_INT);
+    ASSERT_OK(lst, "Check before get func", (List_t)UN);
+    ASSERT_IF(0 <= log_index && log_index < lst->capacity - 1, "Incorrect logical index. Should be (> 0) and (< capacity)", (List_t)UN);
 
     if (lst->is_sorted) {
         LOG1(printf("Quick get\n"););
         List_t value = lst->data[(lst->head) + log_index].value;
 
-        if (value == poisons::UNINITIALIZED_INT || value == poisons::FREED_ELEMENT) {
-            ERROR_DUMP(lst, "List index out of range");
+        if (value == UN || value == FR) {
+            ERROR_DUMP(lst, "List index out of range", (List_t)UN);
 
             errno = errors::BAD_LOG_INDEX;
             return errors::BAD_LOG_INDEX;
@@ -255,13 +256,13 @@ int push_index(List* lst, List_t value, int ph_index) {
     ASSERT_IF(0 <= ph_index && ph_index < lst->capacity, "Incorrect ph_index. Index should be (>= 0) and (< capacity)", 0);
 
     if (ph_index == 0 && (lst->head != 0 || lst->tail != 0)) {
-        ERROR_DUMP(lst, "Push to 0 address while there are another elements in list. Incorrect physical index");
+        ERROR_DUMP(lst, "Push to 0 address while there are another elements in list. Incorrect physical index", 0);
 
         errno = errors::BAD_PH_INDEX;
         return errors::BAD_PH_INDEX;
     }
-    if (lst->data[ph_index].prev == poisons::UNINITIALIZED_INT) {
-        ERROR_DUMP(lst, "Push after invalid element. Incorrect physical index");
+    if (lst->data[ph_index].prev == UN) {
+        ERROR_DUMP(lst, "Push after invalid element. Incorrect physical index", 0);
 
         errno = errors::BAD_PH_INDEX;
         return errors::BAD_PH_INDEX;
@@ -302,17 +303,17 @@ int push_index(List* lst, List_t value, int ph_index) {
 }
 
 List_t pop_index(List* lst, int ph_index) {
-    ASSERT_OK(lst, "Check before pop_index func", (List_t)poisons::UNINITIALIZED_INT);
-    ASSERT_IF(0 < ph_index && ph_index < lst->capacity, "Incorrect ph_index. Index should be (> 0) and (< capacity)", (List_t)poisons::UNINITIALIZED_INT);
+    ASSERT_OK(lst, "Check before pop_index func", (List_t)UN);
+    ASSERT_IF(0 < ph_index && ph_index < lst->capacity, "Incorrect ph_index. Index should be (> 0) and (< capacity)", (List_t)UN);
 
     if (lst->head == lst->tail && lst->tail == 0) {
-        ERROR_DUMP(lst, "Cannot pop from empty lst");
+        ERROR_DUMP(lst, "Cannot pop from empty lst",(List_t)UN);
 
         errno = errors::LST_EMPTY;
         return errors::LST_EMPTY;
     }
-    if (lst->data[ph_index].prev == poisons::UNINITIALIZED_INT) {
-        ERROR_DUMP(lst, "Pop invalid element. Incorrect physical index");
+    if (lst->data[ph_index].prev == UN) {
+        ERROR_DUMP(lst, "Pop invalid element. Incorrect physical index",(List_t)UN);
 
         errno = errors::BAD_PH_INDEX;
         return errors::BAD_PH_INDEX;
@@ -336,14 +337,14 @@ List_t pop_index(List* lst, int ph_index) {
     lst->data[next_index].prev = prev_index;    // Changing prev value for element, before which deleted element
 
     // Deleting new element data-----------------------------------------------
-    lst->data[ph_index].value = poisons::FREED_ELEMENT;
+    lst->data[ph_index].value = FR;
     lst->data[ph_index].next  = lst->first_free;
-    lst->data[ph_index].prev  = poisons::UNINITIALIZED_INT;
+    lst->data[ph_index].prev  = UN;
 
     lst->first_free = ph_index;                 // Updating first_free index (making deleting index as first free)
     // ------------------------------------------------------------------------
 
-    ASSERT_OK(lst, "Check after pop_index func", (List_t)poisons::UNINITIALIZED_INT);
+    ASSERT_OK(lst, "Check after pop_index func", (List_t)UN);
     return pop_val;
 }
 
@@ -354,7 +355,7 @@ int push_back(List* lst, List_t value) {
 }
 
 List_t pop_back(List* lst) {
-    ASSERT_OK(lst, "Check before pop_back func", (List_t)poisons::UNINITIALIZED_INT);
+    ASSERT_OK(lst, "Check before pop_back func", (List_t)UN);
 
     List_t pop_val = pop_index(lst, lst->tail);
     lst->is_sorted = 1;
@@ -370,7 +371,7 @@ int push_front(List* lst, List_t value) {
 }
 
 List_t pop_front(List* lst) {
-    ASSERT_OK(lst, "Check before pop_front func", (List_t)poisons::UNINITIALIZED_INT);
+    ASSERT_OK(lst, "Check before pop_front func", (List_t)UN);
 
     List_t pop_val = pop_index(lst, lst->head);
     lst->is_sorted = 1;
@@ -440,7 +441,7 @@ int list_dump(List* lst, const char* reason, FILE* log, const char* sep, const c
     fprintf(log, "              ");
     for (int i = 0 ; i < capacity; i++) {
         if      (i == lst->head && i == lst->tail)  fprintf(log, COLORED_OUTPUT(" B ", PURPLE, log));
-        else if (i == lst->head)                    fprintf(log, COLORED_OUTPUT(" H ", RED, log));
+        else if (i == lst->head)                    fprintf(log, COLORED_OUTPUT(" H ", BLUE, log));
         else if (i == lst->tail)                    fprintf(log, COLORED_OUTPUT(" T ", GREEN, log));
         else                                        fprintf(log, "   ");
 
@@ -450,9 +451,9 @@ int list_dump(List* lst, const char* reason, FILE* log, const char* sep, const c
 
     fprintf(log, "    Buffer: [ ");
     for (int i = 0; i < capacity; i++) {
-        if      (lst->data[i].value == (List_t)poisons::UNINITIALIZED_INT)  fprintf(log, COLORED_OUTPUT(" un", CYAN, log));
-        else if (lst->data[i].value == (List_t)poisons::FREED_ELEMENT)      fprintf(log, COLORED_OUTPUT(" fr", RED, log));
-        else                                                                fprintf(log, "%3d", lst->data[i].value);
+        if      (lst->data[i].value == (List_t)UN)  fprintf(log, COLORED_OUTPUT(" un", CYAN, log));
+        else if (lst->data[i].value == (List_t)FR)  fprintf(log, COLORED_OUTPUT(" fr", RED, log));
+        else                                        fprintf(log, "%3d", lst->data[i].value);
 
         if (i + 1 < capacity) fprintf(log, "%s", sep);
     }
@@ -460,9 +461,9 @@ int list_dump(List* lst, const char* reason, FILE* log, const char* sep, const c
 
     fprintf(log, "    Next:   [ ");
     for (int i = 0; i < capacity; i++) {
-        if      (lst->data[i].next == poisons::UNINITIALIZED_INT)   fprintf(log, COLORED_OUTPUT(" un", ORANGE, log));
-        else if (lst->data[i].next == poisons::FREED_ELEMENT)       fprintf(log, COLORED_OUTPUT(" fr", RED, log));
-        else                                                        fprintf(log, "%3d", lst->data[i].next);
+        if      (lst->data[i].next == UN)   fprintf(log, COLORED_OUTPUT(" un", ORANGE, log));
+        else if (lst->data[i].next == FR)   fprintf(log, COLORED_OUTPUT(" fr", RED, log));
+        else                                fprintf(log, "%3d", lst->data[i].next);
 
         if (i + 1 < capacity) fprintf(log, "%s", sep);
     }
@@ -470,15 +471,15 @@ int list_dump(List* lst, const char* reason, FILE* log, const char* sep, const c
 
     fprintf(log, "    Prev:   [ ");
     for (int i = 0; i < capacity; i++) {
-        if      (lst->data[i].prev == poisons::UNINITIALIZED_INT)   fprintf(log, COLORED_OUTPUT(" un", ORANGE, log));
-        else if (lst->data[i].prev == poisons::FREED_ELEMENT)       fprintf(log, COLORED_OUTPUT(" fr", RED, log));
+        if      (lst->data[i].prev == UN)   fprintf(log, COLORED_OUTPUT(" un", ORANGE, log));
+        else if (lst->data[i].prev == FR)       fprintf(log, COLORED_OUTPUT(" fr", RED, log));
         else                                                        fprintf(log, "%3d", lst->data[i].prev);
 
         if (i + 1 < capacity) fprintf(log, "%s", sep);
     }
     fprintf(log, " ] %s\n", end);
 
-    fprintf(log, "    First_free: %d %s\n", lst->first_free, lst->first_free >= -1 && lst->first_free < capacity ? "" : COLORED_OUTPUT("(BAD)", RED, log));
+    fprintf(log, "    First_free: %d %s\n", lst->first_free, lst->first_free >= 0 && lst->first_free < capacity ? "" : COLORED_OUTPUT("(BAD)", RED, log));
     
     fprintf(log, COLORED_OUTPUT("|---------------------Compilation  Date %s %s---------------------|", ORANGE, log),
             __DATE__, __TIME__);
@@ -487,46 +488,81 @@ int list_dump(List* lst, const char* reason, FILE* log, const char* sep, const c
     return 1;
 }
 
-int list_dump_graph(List* lst, FILE* log) {
-    ASSERT_IF(VALID_PTR(lst), "Invalid lst ptr", 0);
-    ASSERT_IF(VALID_PTR(log), "Invalid log ptr", 0);
+int list_dump_graph(List* lst, const char* reason, FILE* log, const char* sep, const char* end) {
+    ASSERT_IF(VALID_PTR(lst),    "Invalid lst ptr", 0);
+    ASSERT_IF(VALID_PTR(log),    "Invalid log ptr", 0);
+    
+    ASSERT_IF(VALID_PTR(reason), "Invalid reason ptr", 0);
+    ASSERT_IF(VALID_PTR(sep),    "Invalid sep ptr", 0);
+    ASSERT_IF(VALID_PTR(end),    "Invalid end ptr", 0);
 
-    FILE* dot_file = open_file("dot_file.txt", "w");
+    FILE* dot_file = open_file("logs/dot_file.txt", "w");
 
     fputs("digraph structs {\n", dot_file);
-    fputs("    rankdir=LR\n", dot_file);
+    fputs("    rankdir=LR\n\n", dot_file);
 
-    int head_tmp = lst->head;
-    for (int i = 0; ; head_tmp = lst->data[head_tmp].next, i++) {
-        ListElement el = lst->data[head_tmp];
-        char* node_str = (char*) calloc(MAX_NODE_STR_SIZE, sizeof(char));
-        sprintf(node_str, "    cell_%d [ shape=record, label=<%d<br/><br/>"
-                    "value=<font color=\"%s\">%s</font><br/>"
-                    " next=<font color=\"%s\">%s</font><br/>"
-                    " prev=<font color=\"%s\">%s</font>"
-                    "> color=\"%s\"\ ];\n",
-                i, head_tmp,
+
+    int capacity = lst->capacity;
+    char* node_str = (char*) calloc(MAX_NODE_STR_SIZE, sizeof(char));
+    sprintf(node_str, "    cell_head [ shape=component label=\"head | %d\" color=\"%s\" ]\n"
+                      "    cell_tail [ shape=component label=\"tail | %d\" color=\"%s\" ]\n"
+                      "    cell_capacity [ shape=component label=\"capacity | %d\" color=\"%s\" ]\n"
+                      "    cell_head -> cell_tail -> cell_capacity[arrowhead=\"none\"]\n\n",
+            lst->head, 0 < lst->head && lst->head < capacity ? "blue"  : "red",
+            lst->tail, 0 < lst->tail && lst->tail < capacity ? "green" : "red",
+            capacity, capacity > 0 ? "black" : "red"
+    );
+    fputs(node_str, dot_file);
+
+    for (int i = 0; i < capacity; i++) {
+        ListElement el = lst->data[i];
+        node_str = (char*) calloc(MAX_NODE_STR_SIZE, sizeof(char));
+        sprintf(node_str, "    cell_%d [ shape=record, label=< %d<br/><br/>"
+                    " value =<font color=\"%s\">%s</font><br/>"
+                    "  next =<font color=\"%s\">%s</font><br/>"
+                    "  prev =<font color=\"%s\">%s</font>"
+                    "> color = \"%s\" ]\n",
+                i, i,
                 el.value == (List_t)UN ? "blue" : el.value == (List_t)FR ? "red" : "black", el.value == (List_t)UN ? "un" : el.value == (List_t)FR ? "fr" : to_string(el.value),
                 el.next  == UN ? "orange" : el.next == FR ? "red": "black", el.next == UN ? "un" : el.next == FR ? "fr" : to_string(el.next),
                 el.prev  == UN ? "orange" : el.prev == FR ? "red": "black", el.prev == UN ? "un" : el.prev == FR ? "fr" : to_string(el.prev),
-                head_tmp == lst->head && head_tmp == lst->tail ? "purple" : head_tmp == lst->head ? "red" : head_tmp == lst->tail ? "green" : "black"
+                i == lst->head && i == lst->tail ? "purple" : i == lst->head ? "blue" : i == lst->tail ? "green" : "black"
         );
-        //    0 [ shape=record, label=<0<br/><br/>value=<font color="blue">un</font><br/><font color="black">next=2</font><br/>prev=<font color="orange">un</font>> color="red" comment="1"];
         fputs(node_str, dot_file);
 
-        if (lst->data[head_tmp].next == 0) break;
-        else {
-            sprintf(node_str, "    cell_%d -> cell_%d\n\n",
-                i, i + 1
-            );
-            fputs(node_str, dot_file);
+        if (i != 0) {
+            if (el.next != UN && el.next != FR && el.next != 0) {
+                sprintf(node_str, "    cell_%d -> cell_%d\n", i, el.next);
+                fputs(node_str, dot_file);
+            }
+            if (el.prev != UN && el.prev != FR) {
+                sprintf(node_str, "    cell_%d -> cell_%d\n", i, el.prev);
+                fputs(node_str, dot_file);
+            }
         }
+        fputs("\n", dot_file);
     }
+
+    int err = list_error(lst);
+    sprintf(node_str, "    cell_free [ shape=component label=\"first free | %d\" color=\"%s\" ]\n\n"
+                      "    cell_is_sorted [shape=component label=\"is_sorted | %s\" color=\"%s\" ]\n"
+                      "    cell_state [ shape=component label=\"state | %d (%s)\" color=\"%s\" ]\n"
+                      "    cell_state -> cell_is_sorted[arrowhead=\"none\"]\n",
+            lst->first_free, 0 <= lst->first_free && lst->first_free < capacity ? "black" : "red",
+            lst->is_sorted == 0 ? "no" : lst->is_sorted == 1 ? "yes" : to_string(lst->is_sorted), 0 <= lst->is_sorted && lst->is_sorted <= 1 ? "black" : "red",
+            err, list_error_desc(err), err == 0 ? "green" : "red"
+    );
+    fputs(node_str, dot_file);
 
     fputs("}\n", dot_file);
     fclose(dot_file);
 
-    system("dot -v -Tpng dot_file.txt -o graph.png");
+    system("dot -v -Tpng logs/dot_file.txt -o logs/graph.png");
 
+    fputs("<h1 align=\"center\">Dump List</h1>\n<pre>\n", log);
+    list_dump(lst, reason, log, sep, end);
+    fputs("</pre>\n<img src=\"logs/graph.png\">\n\n", log);
+
+    FREE_PTR(node_str, char);
     return 1;
 }

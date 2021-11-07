@@ -31,4 +31,7 @@
 *.out
 *.app
 
+*.png
+*.html
+dot_file.txt
 log.txt
