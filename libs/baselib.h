@@ -10,7 +10,7 @@
 #endif
 
 #ifndef LOG_PRINTF
-    #define LOG_PRINTF 0
+    #define LOG_PRINTF 1
 #endif
 
 #define dbg(code) do{ printf("%s:%d\n", __FILE__, __LINE__); code }while(0)

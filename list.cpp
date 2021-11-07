@@ -17,6 +17,10 @@
 #define UN poisons::UNINITIALIZED_INT
 #define FR poisons::FREED_ELEMENT
 
+//! List Constructor
+//! \param lst      ptr to List object
+//! \param capacity start List capacity (default BUFFER_DEFAULT_SIZE)
+//! \return         1 if success, ese 0
 int list_ctor(List* lst, int capacity) {
     ASSERT_IF(VALID_PTR(lst), "Invalid lst ptr", 0);
     ASSERT_IF(capacity > 0,   "Incorrect capacity: (<= 0)", 0);
@@ -47,6 +51,9 @@ int list_ctor(List* lst, int capacity) {
     return 1;
 }
 
+//! List Destructor
+//! \param lst      ptr to List object
+//! \return         1 if success, ese 0
 int list_dtor(List* lst) {
     ASSERT_OK(lst, "Check List before dtor call", 0);
 
@@ -71,6 +78,9 @@ int list_dtor(List* lst) {
     return 1;
 }
 
+//! Get string description of error code
+//! \param error_code code of error
+//! \return           string error description
 const char* list_error_desc(int error_code) {
     switch (error_code)
     {
@@ -102,6 +112,9 @@ const char* list_error_desc(int error_code) {
     }
 }
 
+//! Function to detect errors in list
+//! \param lst pointer to List object
+//! \return    error code (0 if all is good)
 int list_error(List* lst) {
     if (!VALID_PTR(lst)) {
         return errors::INVALID_LIST_PTR;
@@ -127,17 +140,23 @@ int list_error(List* lst) {
     return errors::OK;
 }
 
-int find_free_cell(List* lst, int start_index) {
+//! Function find free cell
+//! \param lst ptr to List object
+//! \return    free cell index (0 if list is full)
+int find_free_cell(List* lst) {
     ASSERT_OK(lst, "Check before find_free_cell func", -1);
-    ASSERT_IF(0 <= start_index && start_index < lst->capacity, "Incorrect start_index", -1);
 
-    int free_cell = lst->first_free;
+    int free_cell   = lst->first_free;
     lst->first_free = lst->data[lst->first_free].next;
 
     ASSERT_OK(lst, "Check before find_free_cell func", -1);
     return free_cell;
 }
 
+//! Function resize capacity of list
+//! \param lst      ptr to List object
+//! \param new_size new capacity value
+//! \return         new capacity (0 if error in func)
 int resize_list_capacity(List* lst, int new_size) {
     ASSERT_OK(lst, "Check before resize_list_capacity func", 0);
     ASSERT_IF(new_size > lst->capacity, "Incorrect new_size. Should be (> capacity)", 0);
@@ -171,6 +190,9 @@ int resize_list_capacity(List* lst, int new_size) {
     return lst->capacity;
 }
 
+//! Function sorts list by logical indexes
+//! \param lst ptr to List object
+//! \return    1 if success, else 0
 int please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_really_need_it__i_think_no__so_dont_do_stupid_things_and_better_look_at_memes_about_cats(List* lst) {
     ASSERT_OK(lst, "Check before sorting func", 0);
 
@@ -184,9 +206,11 @@ int please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_
         return errors::NOT_ENOUGH_MEMORY;
     }
 
+    // Fill zero index---------------------------------------------------------
     sorted_list[0].value = UN;
     sorted_list[0].next  = 1;
     sorted_list[0].prev  = 1;
+    // ------------------------------------------------------------------------
 
     int head_tmp = lst->head;
     for (int i = 1; ; head_tmp = lst->data[head_tmp].next, i++) {
@@ -218,6 +242,10 @@ int please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_
     return 1;
 }
 
+//! Function gets element by logical_index
+//! \param lst       ptr to List object
+//! \param log_index logical index
+//! \return          element by logical index (poisons::UNINITIALIZED_INT if error in func)
 List_t get(List* lst, int log_index) {
     ASSERT_OK(lst, "Check before get func", (List_t)UN);
     ASSERT_IF(0 <= log_index && log_index < lst->capacity - 1, "Incorrect logical index. Should be (> 0) and (< capacity)", (List_t)UN);
@@ -251,6 +279,11 @@ void fill_list_element(ListElement* el_ptr, List_t value, int next, int prev) {
     el_ptr->prev  = prev;
 }
 
+//! Function inserts value after ph_index
+//! \param lst      ptr to List object
+//! \param value    inserted value
+//! \param ph_index physical index of element, after which need to insert
+//! \return         physical index of inserted element
 int push_index(List* lst, List_t value, int ph_index) {
     ASSERT_OK(lst, "Check before push_index func", 0);
     ASSERT_IF(0 <= ph_index && ph_index < lst->capacity, "Incorrect ph_index. Index should be (>= 0) and (< capacity)", 0);
@@ -269,12 +302,12 @@ int push_index(List* lst, List_t value, int ph_index) {
     }
 
     // Find next_index where insert--------------------------------------------
-    int next_index = find_free_cell(lst, ph_index);
+    int next_index = find_free_cell(lst);
 
     if (next_index == 0) {
         lst->capacity = resize_list_capacity(lst, lst->capacity * 2);
 
-        next_index = find_free_cell(lst, ph_index);
+        next_index = find_free_cell(lst);
     }
     ASSERT_IF(0 <= next_index && next_index < lst->capacity, "Incorrect next index", 0);
     // ------------------------------------------------------------------------
@@ -302,6 +335,10 @@ int push_index(List* lst, List_t value, int ph_index) {
     return next_index;
 }
 
+//! Function pops element by ph_index
+//! \param lst      ptr to List object
+//! \param ph_index physical index of popped element
+//! \return         popped value
 List_t pop_index(List* lst, int ph_index) {
     ASSERT_OK(lst, "Check before pop_index func", (List_t)UN);
     ASSERT_IF(0 < ph_index && ph_index < lst->capacity, "Incorrect ph_index. Index should be (> 0) and (< capacity)", (List_t)UN);
@@ -348,12 +385,19 @@ List_t pop_index(List* lst, int ph_index) {
     return pop_val;
 }
 
+//! Function inserts value after tail
+//! \param lst   ptr to List object
+//! \param value inserted value
+//! \return      index of inserted element
 int push_back(List* lst, List_t value) {
     ASSERT_OK(lst, "Check before push_back func", 0);
 
     return push_index(lst, value, lst->tail);
 }
 
+//! Function pops vaue by tail index
+//! \param lst ptr to List object
+//! \return    popped value
 List_t pop_back(List* lst) {
     ASSERT_OK(lst, "Check before pop_back func", (List_t)UN);
 
@@ -363,6 +407,10 @@ List_t pop_back(List* lst) {
     return pop_val;
 }
 
+// Function inserts before head index
+//! \param lst   ptr to List object
+//! \param value inserted value
+//! \return      index of inserted element
 int push_front(List* lst, List_t value) {
     ASSERT_OK(lst, "Check before push_front func", 0);
 
@@ -370,6 +418,9 @@ int push_front(List* lst, List_t value) {
     return push_index(lst, value, lst->head);
 }
 
+//! Function pops element by head index
+//! \param lst ptr to List object
+//! \return    popped value
 List_t pop_front(List* lst) {
     ASSERT_OK(lst, "Check before pop_front func", (List_t)UN);
 
@@ -379,6 +430,11 @@ List_t pop_front(List* lst) {
     return pop_val;
 }
 
+//! Function prints list for user
+//! \param lst ptr to List object
+//! \param sep ptr to sep string (default ", ")
+//! \param end ptr to end string (default "\n")
+//! \return    1 if success, else 0
 int print_list(List* lst, const char* sep, const char* end) {
     ASSERT_OK(lst, "Check before print_list func", 0);
     ASSERT_IF(VALID_PTR(sep), "Invalid sep ptr", 0);
@@ -403,6 +459,13 @@ int print_list(List* lst, const char* sep, const char* end) {
     return 1;
 }
 
+//! Function dumps list info
+//! \param lst    ptr to List object
+//! \param reason ptr to reason string
+//! \param log    ptr to log file (default stdout)
+//! \param sep    ptr to sep string (default ", ")
+//! \param end    ptr to end string (default "\n")
+//! \return       1 if success, else 0
 int list_dump(List* lst, const char* reason, FILE* log, const char* sep, const char* end) {
     ASSERT_IF(VALID_PTR(lst),    "Invalid lst ptr", 0);
     ASSERT_IF(VALID_PTR(log),    "Invalid log ptr", 0);
@@ -488,6 +551,13 @@ int list_dump(List* lst, const char* reason, FILE* log, const char* sep, const c
     return 1;
 }
 
+//! Function make graph dump of list info
+//! \param lst    ptr to List object
+//! \param reason ptr to reason string
+//! \param log    ptr to log file
+//! \param sep    ptr to sep string (default ", ")
+//! \param end    ptr to end string (default "\n")
+//! \return       1 if success, else 0
 int list_dump_graph(List* lst, const char* reason, FILE* log, const char* sep, const char* end) {
     ASSERT_IF(VALID_PTR(lst),    "Invalid lst ptr", 0);
     ASSERT_IF(VALID_PTR(log),    "Invalid log ptr", 0);
