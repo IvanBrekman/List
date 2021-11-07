@@ -14,6 +14,9 @@
 
 #include "list.h"
 
+#define UN poisons::UNINITIALIZED_INT
+#define FR poisons::FREED_ELEMENT
+
 int list_ctor(List* lst, int capacity) {
     ASSERT_IF(VALID_PTR(lst), "Invalid lst ptr", 0);
     ASSERT_IF(capacity > 0,   "Incorrect capacity: (<= 0)", 0);
@@ -388,7 +391,7 @@ int print_list(List* lst, const char* sep, const char* end) {
     int head_tmp = lst->head;
 
     printf("[ ");
-    for ( int i = 0; i++ < 10; head_tmp = lst->data[head_tmp].next) {
+    for ( ; ; head_tmp = lst->data[head_tmp].next) {
         printf("%3d", lst->data[head_tmp].value);
 
         if (lst->data[head_tmp].next == 0) break;
@@ -480,6 +483,50 @@ int list_dump(List* lst, const char* reason, FILE* log, const char* sep, const c
     fprintf(log, COLORED_OUTPUT("|---------------------Compilation  Date %s %s---------------------|", ORANGE, log),
             __DATE__, __TIME__);
     fprintf(log, "\n\n");
+
+    return 1;
+}
+
+int list_dump_graph(List* lst, FILE* log) {
+    ASSERT_IF(VALID_PTR(lst), "Invalid lst ptr", 0);
+    ASSERT_IF(VALID_PTR(log), "Invalid log ptr", 0);
+
+    FILE* dot_file = open_file("dot_file.txt", "w");
+
+    fputs("digraph structs {\n", dot_file);
+    fputs("    rankdir=LR\n", dot_file);
+
+    int head_tmp = lst->head;
+    for (int i = 0; ; head_tmp = lst->data[head_tmp].next, i++) {
+        ListElement el = lst->data[head_tmp];
+        char* node_str = (char*) calloc(MAX_NODE_STR_SIZE, sizeof(char));
+        sprintf(node_str, "    cell_%d [ shape=record, label=<%d<br/><br/>"
+                    "value=<font color=\"%s\">%s</font><br/>"
+                    " next=<font color=\"%s\">%s</font><br/>"
+                    " prev=<font color=\"%s\">%s</font>"
+                    "> color=\"%s\"\ ];\n",
+                i, head_tmp,
+                el.value == (List_t)UN ? "blue" : el.value == (List_t)FR ? "red" : "black", el.value == (List_t)UN ? "un" : el.value == (List_t)FR ? "fr" : to_string(el.value),
+                el.next  == UN ? "orange" : el.next == FR ? "red": "black", el.next == UN ? "un" : el.next == FR ? "fr" : to_string(el.next),
+                el.prev  == UN ? "orange" : el.prev == FR ? "red": "black", el.prev == UN ? "un" : el.prev == FR ? "fr" : to_string(el.prev),
+                head_tmp == lst->head && head_tmp == lst->tail ? "purple" : head_tmp == lst->head ? "red" : head_tmp == lst->tail ? "green" : "black"
+        );
+        //    0 [ shape=record, label=<0<br/><br/>value=<font color="blue">un</font><br/><font color="black">next=2</font><br/>prev=<font color="orange">un</font>> color="red" comment="1"];
+        fputs(node_str, dot_file);
+
+        if (lst->data[head_tmp].next == 0) break;
+        else {
+            sprintf(node_str, "    cell_%d -> cell_%d\n\n",
+                i, i + 1
+            );
+            fputs(node_str, dot_file);
+        }
+    }
+
+    fputs("}\n", dot_file);
+    fclose(dot_file);
+
+    system("dot -v -Tpng dot_file.txt -o graph.png");
 
     return 1;
 }

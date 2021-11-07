@@ -6,6 +6,7 @@
 #define LIST_LISTH
 
 const int BUFFER_DEFAULT_SIZE = 10;
+const int MAX_NODE_STR_SIZE = 200;
 
 typedef int List_t;
 
@@ -96,5 +97,6 @@ List_t pop_front(List* lst);
 
 int   print_list(List* lst, const char* sep=", ", const char* end="\n");
 int    list_dump(List* lst, const char* reason, FILE* log=stdout, const char* sep=", ", const char* end="\n");
+int list_dump_graph(List* lst, FILE* log);
 
 #endif // LIST_LISTH
