@@ -7,8 +7,8 @@ const int BUFFER_DEFAULT_SIZE = 10;
 typedef int List_t;
 
 struct ListElement {
-    int value;
-    int next;
+    List_t value;
+    int    next;
 };
 
 struct List {
@@ -67,13 +67,14 @@ int list_dtor(List* lst);
 const char* list_error_desc(int error_code);
 int         list_error(List* lst);
 
-int find_free_cell(List* lst, int start_index);
+int       find_free_cell(List* lst, int start_index);
+int resize_list_capacity(List* lst, int new_size);
 
-int   push_back(List* lst, int value);
-int    pop_back(List* lst);
+int    push_back(List* lst, List_t value);
+List_t  pop_back(List* lst);
 
-int  push_after(List* lst, int value, int ph_index);
-int   pop_after(List* lst, int ph_index);
+int   push_after(List* lst, List_t value, int ph_index);
+List_t pop_after(List* lst, int ph_index);
 
-void print_list(List* lst, const char* sep=", ", const char* end="\n");
-void  list_dump(List* lst, const char* reason, FILE* log=stdout, const char* sep=", ", const char* end="\n");
+void  print_list(List* lst, const char* sep=", ", const char* end="\n");
+void   list_dump(List* lst, const char* reason, FILE* log=stdout, const char* sep=", ", const char* end="\n");

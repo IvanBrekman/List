@@ -22,7 +22,7 @@ int list_ctor(List* lst) {
     lst->data = (ListElement*) calloc(lst->capacity, sizeof(ListElement));
 
     for (int i = 0; i < lst->capacity; i++) {
-        lst->data[i].value = poisons::UNINITIALIZED_INT;
+        lst->data[i].value = (List_t)poisons::UNINITIALIZED_INT;
         lst->data[i].next  = poisons::UNINITIALIZED_INT;
     }
 
@@ -35,7 +35,7 @@ int list_dtor(List* lst) {
 
     if (VALIDATE_LEVEL >= MEDIUM_VALIDATE) {
         for (int i = 0; i < lst->capacity; i++) {
-            lst->data[i].value = poisons::FREED_ELEMENT;
+            lst->data[i].value = (List_t)poisons::FREED_ELEMENT;
             lst->data[i].next  = poisons::FREED_ELEMENT;
         }
     }
@@ -118,19 +118,17 @@ int resize_list_capacity(List* lst, int new_size) {
     lst->data = new_data;
 
     for (int i = lst->capacity; i < new_size; i++) {
-        lst->data[i].value = poisons::UNINITIALIZED_INT;
+        lst->data[i].value = (List_t)poisons::UNINITIALIZED_INT;
         lst->data[i].next  = poisons::UNINITIALIZED_INT;
     }
-    printf("check !!!!!!!!! ---------%d-%d--item: %d\n", lst->capacity, new_size, lst->data[12].value);
 
     lst->capacity = new_size;
-    list_dump(lst, "check");
 
     ASSERT_OK(lst, "Check after resize_list_capacity func");
     return lst->capacity;
 }
 
-int   push_back(List* lst, int value) {
+int push_back(List* lst, List_t value) {
     ASSERT_OK(lst, "Check before push_back func");
 
     if (lst->head == lst->tail && lst->tail == 0) {
@@ -164,23 +162,23 @@ int   push_back(List* lst, int value) {
     return next_index;
 }
 
-int    pop_back(List* lst) {
+List_t pop_back(List* lst) {
     ASSERT_OK(lst, "Check before pop_back func");
     
-    if (lst->data[lst->head].value == poisons::UNINITIALIZED_INT) {
+    if (lst->data[lst->head].next == poisons::UNINITIALIZED_INT) {
         ERROR_DUMP(lst, "Cannot pop from empty lst");
 
         errno = errors::LST_EMPTY;
         return errors::LST_EMPTY;
     }
-    int pop_val = lst->data[lst->head].value;
+    List_t pop_val = lst->data[lst->head].value;
 
     if (VALIDATE_LEVEL >= WEAK_VALIDATE) {
-        lst->data[lst->head].value = poisons::FREED_ELEMENT;
+        lst->data[lst->head].value = (List_t)poisons::FREED_ELEMENT;
     }
     
     if (lst->head == lst->tail) {
-        lst->data[lst->head].value = poisons::UNINITIALIZED_INT;
+        lst->data[lst->head].next = poisons::UNINITIALIZED_INT;
         lst->head = lst->tail = 1;
         return pop_val;
     }
@@ -193,7 +191,7 @@ int    pop_back(List* lst) {
     return pop_val;
 }
 
-int  push_after(List* lst, int value, int ph_index) {
+int push_after(List* lst, List_t value, int ph_index) {
     ASSERT_OK(lst, "Check before push_after func");
     assert(0 <= ph_index && ph_index < lst->capacity && "Incorrect ph_index");
 
@@ -222,13 +220,13 @@ int  push_after(List* lst, int value, int ph_index) {
 
     lst->data[next_index].value = value;
     lst->data[next_index].next  = lst->data[ph_index].next;
-    lst->data[ph_index].value = next_index;
+    lst->data[ph_index].next = next_index;
 
     ASSERT_OK(lst, "Check after push_after func");
     return next_index;
 }
 
-int   pop_after(List* lst, int ph_index) {
+int pop_after(List* lst, int ph_index) {
     ASSERT_OK(lst, "Check before pop_after func");
     assert(0 <= ph_index && ph_index < lst->capacity && "Incorrect ph_index");
 
@@ -252,7 +250,7 @@ int   pop_after(List* lst, int ph_index) {
     }
 
     int next_index = lst->data[ph_index].next;
-    int pop_val = lst->data[next_index].value;
+    List_t pop_val = lst->data[next_index].value;
 
     if (next_index == lst->tail) {
         lst->tail = ph_index;
@@ -320,10 +318,10 @@ void list_dump(List* lst, const char* reason, FILE* log, const char* sep, const 
 
     fprintf(log, "              ");
     for (int i = 0 ; i < lst->capacity; i++) {
-        if      (i == lst->head && i == lst->tail) fprintf(log, COLORED_OUTPUT(" B ", PURPLE, log));
-        else if (i == lst->head) fprintf(log, COLORED_OUTPUT(" H ", RED, log));
-        else if (i == lst->tail) fprintf(log, COLORED_OUTPUT(" T ", GREEN, log));
-        else                     fprintf(log, "   ");
+        if      (i == lst->head && i == lst->tail)  fprintf(log, COLORED_OUTPUT(" B ", PURPLE, log));
+        else if (i == lst->head)                    fprintf(log, COLORED_OUTPUT(" H ", RED, log));
+        else if (i == lst->tail)                    fprintf(log, COLORED_OUTPUT(" T ", GREEN, log));
+        else                                        fprintf(log, "   ");
 
         fprintf(log, "  ");
     }
@@ -331,9 +329,9 @@ void list_dump(List* lst, const char* reason, FILE* log, const char* sep, const 
 
     fprintf(log, "    Buffer: [ ");
     for (int i = 0; i < lst->capacity; i++) {
-        if      (lst->data[i].value == poisons::UNINITIALIZED_INT) fprintf(log, COLORED_OUTPUT(" un", CYAN, log));
-        else if (lst->data[i].value == poisons::FREED_ELEMENT)     fprintf(log, COLORED_OUTPUT(" fr", RED, log));
-        else                                                   fprintf(log, "%3d", lst->data[i].value);
+        if      (lst->data[i].value == (List_t)poisons::UNINITIALIZED_INT)  fprintf(log, COLORED_OUTPUT(" un", CYAN, log));
+        else if (lst->data[i].value == (List_t)poisons::FREED_ELEMENT)      fprintf(log, COLORED_OUTPUT(" fr", RED, log));
+        else                                                                fprintf(log, "%3d", lst->data[i].value);
 
         if (i + 1 < lst->capacity) fprintf(log, "%s", sep);
     }
@@ -341,9 +339,9 @@ void list_dump(List* lst, const char* reason, FILE* log, const char* sep, const 
 
     fprintf(log, "    Next:   [ ");
     for (int i = 0; i < lst->capacity; i++) {
-        if      (lst->data[i].next == poisons::UNINITIALIZED_INT) fprintf(log, COLORED_OUTPUT(" un", ORANGE, log));
-        else if (lst->data[i].next == poisons::FREED_ELEMENT)     fprintf(log, COLORED_OUTPUT(" fr", RED, log));
-        else                                                 fprintf(log, "%3d", lst->data[i].next);
+        if      (lst->data[i].next == poisons::UNINITIALIZED_INT)   fprintf(log, COLORED_OUTPUT(" un", ORANGE, log));
+        else if (lst->data[i].next == poisons::FREED_ELEMENT)       fprintf(log, COLORED_OUTPUT(" fr", RED, log));
+        else                                                        fprintf(log, "%3d", lst->data[i].next);
 
         if (i + 1 < lst->capacity) fprintf(log, "%s", sep);
     }

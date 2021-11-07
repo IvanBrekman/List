@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     list_dump(&lst, "Check deleting");
     print_list(&lst);
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 5; i++) {
         push_back(&lst, (i + 1) * 10);
         list_dump(&lst, "Check adding");
         print_list(&lst);
