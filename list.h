@@ -33,21 +33,12 @@ struct List {
 #define ASSERT_OK(obj, reason, ret) {                                               \
     if (VALIDATE_LEVEL >= WEAK_VALIDATE && list_error(obj)) {                       \
         list_dump(obj, reason);                                                     \
-        if (VALIDATE_LEVEL >= HIGHEST_VALIDATE) {                                   \
-            FILE* log = open_file("log.txt", "a");                                  \
-            list_dump(obj, reason, log);                                            \
-            fclose(log);                                                            \
-        }                                                                           \
-        FILE* gr_log = open_file("log.html", "w");                                  \
-        if (LOG_GRAPH == 1) list_dump_graph(obj, reason, gr_log);                   \
-        fclose(gr_log);                                                             \
+        LOG_DUMP(obj, reason, list_dump);                                           \
+        LOG_DUMP_GRAPH(obj, reason, list_dump_graph)                                \
                                                                                     \
         ASSERT_IF(0, "verify failed", ret);                                         \
     } else if (list_error(obj)) {                                                   \
-        FILE* gr_log = open_file("log.html", "w");                                  \
-        if (LOG_GRAPH == 1) list_dump_graph(obj, reason, gr_log);                   \
-        fclose(gr_log);                                                             \
-                                                                                    \
+        LOG_DUMP_GRAPH(obj, reason, list_dump_graph)                                \
         errno = list_error(obj);                                                    \
         return ret;                                                                 \
     }                                                                               \
@@ -56,14 +47,8 @@ struct List {
 #define ERROR_DUMP(obj, reason, ret) {                                              \
     if (VALIDATE_LEVEL >= WEAK_VALIDATE) {                                          \
         list_dump(obj, reason);                                                     \
-        if (VALIDATE_LEVEL >= HIGHEST_VALIDATE) {                                   \
-            FILE* log = open_file("log.txt", "a");                                  \
-            list_dump(obj, reason, log);                                            \
-            fclose(log);                                                            \
-        }                                                                           \
-        FILE* gr_log = open_file("log.html", "w");                                  \
-        if (LOG_GRAPH == 1) list_dump_graph(obj, reason, gr_log);                   \
-        fclose(gr_log);                                                             \
+        LOG_DUMP(obj, reason, list_dump);                                           \
+        LOG_DUMP_GRAPH(obj, reason, list_dump_graph)                                \
                                                                                     \
         ASSERT_IF(0, reason, ret);                                                  \
     }                                                                               \

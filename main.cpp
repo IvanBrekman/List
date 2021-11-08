@@ -5,20 +5,24 @@
 #include <cstdio>
 #include <cerrno>
 
+#include "tests/test_work_graph.h"
+
 #include "libs/baselib.h"
 #include "libs/file_funcs.h"
 
 #include "list.h"
 
 int main(void) {
+    test_work_graph();
+    return 1;
+
     List lst = { };
 
     errno = 0;
     list_ctor(&lst);
     printf("errno: %d\n", errno);
-    list_dump(&lst, "Check dump");
 
-#if 0
+#if 1
     print_list(&lst);
     for (int i = 0; i < 5; i++) {
         push_back(&lst, (i + 1) * 10);
@@ -53,9 +57,9 @@ int main(void) {
         print_list(&lst);
     }
 
-    please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_really_need_it__i_think_no__so_dont_do_stupid_things_and_better_look_at_memes_about_cats(&lst);
-    list_dump(&lst, "Check sorting");
-    print_list(&lst);
+    // please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_really_need_it__i_think_no__so_dont_do_stupid_things_and_better_look_at_memes_about_cats(&lst);
+    // list_dump(&lst, "Check sorting");
+    // print_list(&lst);
 
     pop_front(&lst);
     list_dump(&lst, "Check deleting front");
@@ -66,9 +70,9 @@ int main(void) {
     list_dump(&lst, "Check adding");
     print_list(&lst);
 
-    please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_really_need_it__i_think_no__so_dont_do_stupid_things_and_better_look_at_memes_about_cats(&lst);
-    list_dump(&lst, "Check sorting");
-    print_list(&lst);
+    // please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_really_need_it__i_think_no__so_dont_do_stupid_things_and_better_look_at_memes_about_cats(&lst);
+    // list_dump(&lst, "Check sorting");
+    // print_list(&lst);
 
     FILE* graph_log = open_file("log.html", "w");
     list_dump_graph(&lst, "Check dtor", graph_log);
@@ -102,7 +106,6 @@ int main(void) {
 #endif
 
     list_dtor(&lst);
-    list_dump(&lst, "check dtor");
 
     return 0;
 }

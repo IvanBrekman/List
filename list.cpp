@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cassert>
 #include <cerrno>
+#include <ctime>
 
 #include "libs/baselib.h"
 #include "libs/file_funcs.h"
@@ -294,7 +295,7 @@ int push_index(List* lst, List_t value, int ph_index) {
         ERROR_DUMP(lst, "Push after invalid element. Incorrect physical index", 0);
 
         errno = errors::BAD_PH_INDEX;
-        return errors::BAD_PH_INDEX;
+        return  errors::BAD_PH_INDEX;
     }
 
     // Find next_index where insert--------------------------------------------
@@ -570,8 +571,10 @@ int list_dump_graph(List* lst, const char* reason, FILE* log, const char* sep, c
     FILE* dot_file = open_file("logs/dot_file.txt", "w");
 
     fputs("digraph structs {\n", dot_file);
-    fputs("    rankdir=LR\n\n", dot_file);
-
+    fputs("    rankdir=LR\n"
+          "    label=\"", dot_file);
+    fputs(reason, dot_file);
+    fputs("\"\n\n", dot_file);
 
     int capacity = lst->capacity;
     char* node_str = (char*) calloc(MAX_NODE_STR_SIZE, sizeof(char));
@@ -592,12 +595,13 @@ int list_dump_graph(List* lst, const char* reason, FILE* log, const char* sep, c
                     " value =<font color=\"%s\">%s</font><br/>"
                     "  next =<font color=\"%s\">%s</font><br/>"
                     "  prev =<font color=\"%s\">%s</font>"
-                    "> color = \"%s\" ]\n",
+                    "> color = \"%s\" %s ]\n",
                 i, i,
                 el.value == (List_t)UN ? "blue" : el.value == (List_t)FR ? "red" : "black", el.value == (List_t)UN ? "un" : el.value == (List_t)FR ? "fr" : to_string(el.value),
                 el.next  == UN ? "orange" : el.next == FR ? "red": "black", el.next == UN ? "un" : el.next == FR ? "fr" : to_string(el.next),
                 el.prev  == UN ? "orange" : el.prev == FR ? "red": "black", el.prev == UN ? "un" : el.prev == FR ? "fr" : to_string(el.prev),
-                i == lst->head && i == lst->tail ? "purple" : i == lst->head ? "blue" : i == lst->tail ? "green" : "black"
+                i == lst->head && i == lst->tail ? "purple" : i == lst->head ? "blue" : i == lst->tail ? "green" : "black",
+                lst->data[i].prev == UN ? "style=\"filled\" fillcolor=\"lightgreen\"" : ""
         );
         fputs(node_str, dot_file);
 
@@ -610,6 +614,8 @@ int list_dump_graph(List* lst, const char* reason, FILE* log, const char* sep, c
                 sprintf(node_str, "    cell_%d -> cell_%d\n", i, el.prev);
                 fputs(node_str, dot_file);
             }
+            sprintf(node_str, "    cell_%d -> cell_%d[style=\"invis\"]\n", i - 1, i);
+            fputs(node_str, dot_file);
         }
         fputs("\n", dot_file);
     }
@@ -618,22 +624,26 @@ int list_dump_graph(List* lst, const char* reason, FILE* log, const char* sep, c
     sprintf(node_str, "    cell_free [ shape=component label=\"first free | %d\" color=\"%s\" ]\n\n"
                       "    cell_is_sorted [shape=component label=\"is_sorted | %s\" color=\"%s\" ]\n"
                       "    cell_state [ shape=component label=\"state | %d (%s)\" color=\"%s\" ]\n"
-                      "    cell_state -> cell_is_sorted[arrowhead=\"none\"]\n",
+                      "    cell_state -> cell_is_sorted[arrowhead=\"none\"]\n"
+                      "    cell_free  -> cell_%d[arrowhead=\"icurve\"]",
             lst->first_free, 0 <= lst->first_free && lst->first_free < capacity ? "black" : "red",
             lst->is_sorted == 0 ? "no" : lst->is_sorted == 1 ? "yes" : to_string(lst->is_sorted), 0 <= lst->is_sorted && lst->is_sorted <= 1 ? "black" : "red",
-            err, list_error_desc(err), err == 0 ? "green" : "red"
+            err, list_error_desc(err), err == 0 ? "green" : "red", lst->first_free
     );
     fputs(node_str, dot_file);
 
     fputs("}\n", dot_file);
     fclose(dot_file);
 
-    system("dot -v -Tpng logs/dot_file.txt -o logs/graph.png");
+    time_t seconds = time(NULL);
+    sprintf(node_str, "dot -v -Tpng logs/dot_file.txt -o logs/graph_%ld.png", seconds);
+    system(node_str);
 
     fputs("<h1 align=\"center\">Dump List</h1>\n<pre>\n", log);
     list_dump(lst, reason, log, sep, end);
-    fputs("</pre>\n<img src=\"logs/graph.png\">\n\n", log);
+    sprintf(node_str, "</pre>\n<img src=\"logs/graph_%ld.png\">\n\n", seconds);
+    fputs(node_str, log);
 
     FREE_PTR(node_str, char);
-    return 1;
+    return seconds;
 }

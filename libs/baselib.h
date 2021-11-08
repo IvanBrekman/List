@@ -13,6 +13,10 @@
     #define LOG_PRINTF 1
 #endif
 
+#ifndef LOG_GRAPH
+    #define LOG_GRAPH 0
+#endif
+
 #define dbg(code) do{ printf("%s:%d\n", __FILE__, __LINE__); code }while(0)
 #define LOCATION(var) { TYPE, #var, __FILE__, __FUNCTION__, __LINE__ }
 #define VALID_PTR(ptr) !isbadreadptr((const void*)(ptr))
@@ -41,6 +45,20 @@ Default define to ASSERT_OK. Use it to customize macros for each project.
 }
 
 */
+
+#define LOG_DUMP(obj, reason, func) {                                               \
+    if (VALIDATE_LEVEL >= HIGHEST_VALIDATE) {                                       \
+        FILE* log = open_file("log.txt", "a");                                      \
+        func(obj, reason, log);                                                     \
+        fclose(log);                                                                \
+    }                                                                               \
+}
+
+#define LOG_DUMP_GRAPH(obj, reason, func) {                                         \
+    FILE* gr_log = open_file("log.html", "a");                                      \
+    if (LOG_GRAPH == 1) func(obj, reason, gr_log);                                  \
+    fclose(gr_log);                                                                 \
+}
 
 #define PRINT_WARNING(text) {                                                       \
     printf(ORANGE text NATURAL);                                                    \
