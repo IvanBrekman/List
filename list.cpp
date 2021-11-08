@@ -32,12 +32,13 @@ int list_ctor(List* lst, int capacity) {
     lst->data = (ListElement*) calloc(capacity, sizeof(ListElement));
 
     for (int i = 0; i < capacity; i++) {
-        // TODO function or directly assign?
-        // fill_list_element(&lst->data[i], (List_t)UN, i + 1, UN);
-        lst->data[i].value = (List_t)UN;
-        lst->data[i].next  = i + 1;
-        lst->data[i].prev  = UN;
+        lst->data[i] = {
+            .value = (List_t)UN,
+            .next  = i + 1,
+            .prev  = UN
+        };
     }
+
     lst->data[0].next = 0;
     lst->data[0].prev = 0;
     lst->data[capacity - 1].next = 0;
@@ -60,9 +61,11 @@ int list_dtor(List* lst) {
     if (VALIDATE_LEVEL >= MEDIUM_VALIDATE) {
         int capacity = lst->capacity;
         for (int i = 0; i < capacity; i++) {
-            lst->data[i].value = (List_t)FR;
-            lst->data[i].next  = FR;
-            lst->data[i].prev  = FR;
+            lst->data[i] = {
+                .value = (List_t)FR,
+                .next  = FR,
+                .prev  = FR
+            };
         }
     }
 
@@ -177,9 +180,11 @@ int resize_list_capacity(List* lst, int new_size) {
 
     int capacity = lst->capacity;
     for (int i = capacity; i < new_size; i++) {
-        lst->data[i].value = (List_t)UN;
-        lst->data[i].next  = i + 1;
-        lst->data[i].prev  = UN;
+        lst->data[i] = {
+            .value = (List_t)UN,
+            .next  = i + 1,
+            .prev  = UN
+        };
     }
 
     lst->first_free = capacity;
@@ -220,9 +225,11 @@ int please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_
 
         if (lst->data[head_tmp].next == 0) {
             for (int index_zero = i + 1; index_zero < capacity; index_zero++) {
-                sorted_list[index_zero].value = UN;
-                sorted_list[index_zero].next  = index_zero + 1;
-                sorted_list[index_zero].prev  = UN;
+                sorted_list[index_zero] = {
+                    .value = (List_t)UN,
+                    .next  = index_zero + 1,
+                    .prev  = UN
+                };
             }
 
             sorted_list[i].next = 0;
@@ -233,8 +240,9 @@ int please_dont_use_sorted_by_next_values_func_because_it_too_slow__also_do_you_
         };
     }
 
-    // !TODO free data?
+    free(lst->data);
     lst->data = sorted_list;
+
     lst->head = 1;
     lst->is_sorted = 1;
 
@@ -273,12 +281,6 @@ List_t get(List* lst, int log_index) {
     return lst->data[head_tmp].value;
 }
 
-void fill_list_element(ListElement* el_ptr, List_t value, int next, int prev) {
-    el_ptr->value = value;
-    el_ptr->next  = next;
-    el_ptr->prev  = prev;
-}
-
 //! Function inserts value after ph_index
 //! \param lst      ptr to List object
 //! \param value    inserted value
@@ -288,12 +290,6 @@ int push_index(List* lst, List_t value, int ph_index) {
     ASSERT_OK(lst, "Check before push_index func", 0);
     ASSERT_IF(0 <= ph_index && ph_index < lst->capacity, "Incorrect ph_index. Index should be (>= 0) and (< capacity)", 0);
 
-    if (ph_index == 0 && (lst->head != 0 || lst->tail != 0)) {
-        ERROR_DUMP(lst, "Push to 0 address while there are another elements in list. Incorrect physical index", 0);
-
-        errno = errors::BAD_PH_INDEX;
-        return errors::BAD_PH_INDEX;
-    }
     if (lst->data[ph_index].prev == UN) {
         ERROR_DUMP(lst, "Push after invalid element. Incorrect physical index", 0);
 
@@ -305,7 +301,7 @@ int push_index(List* lst, List_t value, int ph_index) {
     int next_index = find_free_cell(lst);
 
     if (next_index == 0) {
-        lst->capacity = resize_list_capacity(lst, lst->capacity * 2);
+        resize_list_capacity(lst, lst->capacity * 2);
 
         next_index = find_free_cell(lst);
     }
@@ -313,17 +309,19 @@ int push_index(List* lst, List_t value, int ph_index) {
     // ------------------------------------------------------------------------
 
     // Adding new element data-------------------------------------------------
-    lst->data[next_index].value = value;
-    lst->data[next_index].next  = lst->data[ph_index].next;
-    lst->data[next_index].prev  = ph_index;
+    lst->data[next_index] = {
+        .value = value,
+        .next  = lst->data[ph_index].next,
+        .prev  = ph_index
+    };
     // ------------------------------------------------------------------------
 
     lst->data[lst->data[ph_index].next].prev = next_index;  // Changing prev value for element, before which inserted element
     lst->data[ph_index].next = next_index;                  // Changing next value for element, after which we insert
 
     // Updating head and tail index (if it need)-------------------------------
-    if (lst->head == lst->tail && lst->tail == 0) {
-        lst->head = 1;
+    if (ph_index == 0) {
+        lst->head = next_index;
     }
     if (lst->tail == ph_index) {
         lst->tail = next_index;
@@ -374,10 +372,12 @@ List_t pop_index(List* lst, int ph_index) {
     lst->data[next_index].prev = prev_index;    // Changing prev value for element, before which deleted element
 
     // Deleting new element data-----------------------------------------------
-    lst->data[ph_index].value = FR;
-    lst->data[ph_index].next  = lst->first_free;
-    lst->data[ph_index].prev  = UN;
-
+    lst->data[ph_index] = {
+        .value = (List_t)FR,
+        .next  = lst->first_free,
+        .prev  = UN
+    };
+    
     lst->first_free = ph_index;                 // Updating first_free index (making deleting index as first free)
     // ------------------------------------------------------------------------
 
@@ -401,8 +401,9 @@ int push_back(List* lst, List_t value) {
 List_t pop_back(List* lst) {
     ASSERT_OK(lst, "Check before pop_back func", (List_t)UN);
 
+    int tmp_sorted = lst->is_sorted;
     List_t pop_val = pop_index(lst, lst->tail);
-    lst->is_sorted = 1;
+    lst->is_sorted = tmp_sorted;
 
     return pop_val;
 }
@@ -414,8 +415,7 @@ List_t pop_back(List* lst) {
 int push_front(List* lst, List_t value) {
     ASSERT_OK(lst, "Check before push_front func", 0);
 
-    // TODO how write push front logic?
-    return push_index(lst, value, lst->head);
+    return push_index(lst, value, 0);
 }
 
 //! Function pops element by head index
@@ -424,8 +424,9 @@ int push_front(List* lst, List_t value) {
 List_t pop_front(List* lst) {
     ASSERT_OK(lst, "Check before pop_front func", (List_t)UN);
 
+    int tmp_sorted = lst->is_sorted;
     List_t pop_val = pop_index(lst, lst->head);
-    lst->is_sorted = 1;
+    lst->is_sorted = tmp_sorted;
 
     return pop_val;
 }

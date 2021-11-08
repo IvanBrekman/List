@@ -18,7 +18,7 @@ int main(void) {
     printf("errno: %d\n", errno);
     list_dump(&lst, "Check dump");
 
-#if 1
+#if 0
     print_list(&lst);
     for (int i = 0; i < 5; i++) {
         push_back(&lst, (i + 1) * 10);
@@ -75,7 +75,6 @@ int main(void) {
     fclose(graph_log);
 
 #endif
-
 #if 0
     int ph_index = push_index(&lst, 10, 0);
     list_dump(&lst, "Check adding");
